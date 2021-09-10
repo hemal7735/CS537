@@ -25,18 +25,40 @@ int getSlot(int key) {
     return key%getSize();
 }
 
+struct Node* lookup(int key) {
+    int slot = getSlot(key);
+
+    struct Node* curr = hashmap[slot];
+
+    while(curr != NULL) {
+        if (curr->key == key) {
+            return curr;
+        }
+
+        curr = curr->next;
+    }
+
+    return curr;
+}
+
 void putInSlot(int key, char *value) {
     int slot = getSlot(key);
-    struct Node *node = malloc(sizeof(struct Node));
-    node->key = key;
-    node->value = value;
-    node->next = NULL;
+    struct Node *newnode = malloc(sizeof(struct Node));
+    newnode->key = key;
+    newnode->value = value;
+    newnode->next = NULL;
 
     if (hashmap[slot] == NULL) {
-        hashmap[slot] = node;
+        hashmap[slot] = newnode;
     } else {
-        node->next = hashmap[slot];
-        hashmap[slot] = node;
+        struct Node *node = lookup(key);
+
+        if (node == NULL) {
+            newnode->next = hashmap[slot];
+            hashmap[slot] = newnode;
+        } else {
+            node->value = value;
+        }
     }
 }
 
@@ -91,6 +113,14 @@ void get(char *cmd) {
     if (token != NULL) {
         // TODO: error
         return;
+    }
+
+    struct Node* node = lookup(key);
+
+    if (node == NULL) {
+        printf("NOT FOUND - key: %d in the DB\n", key);
+    } else {
+        printf("FOUND - key: %d, value:%s", key, node->value);
     }
 }
 
@@ -244,7 +274,7 @@ int main(int argc, char *argv[]) {
     // printf("total operations: %d\n", argc - 1);
 
     // TODO: early or lazy load DB?
-    load();
+    // load();
 
     int i;
     for(i = 1; i < argc; i++) {
