@@ -240,10 +240,9 @@ void load() {
             // second token is value - string
             value = strsep(&linebuff, ",");
 
-            // neat trick to avoid last character new line which getline doesn't omit
+            // neat trick to avoid \n last character which getline() doesn't omit
             value[strcspn(value, "\n")] = 0;
 
-            printf("value:%s\n", value);
             putInSlot(key, value);
         }
 
@@ -258,9 +257,26 @@ void load() {
 void persist() {
     FILE *fp = fopen(DB_FILE_NAME, "w");
 
-    // fputs("ssup1", fp);
+    int size = getSize();
+    int i;
+    struct Node *head;
+
+    puts("Trying to persist...");
+
+    for(i = 0; i < size; i++) {
+        // TODO: get the first node and then iterate until NULL
+        head = hashmap[i];
+
+        while (head != NULL) {
+            fprintf(fp, "%d,%s\n", head->key, head->value);
+            head = head->next;
+        }
+    }
    
     fclose(fp);
+
+    puts("Persist DONE!");
+
 }
 
 
@@ -274,7 +290,7 @@ int main(int argc, char *argv[]) {
     // printf("total operations: %d\n", argc - 1);
 
     // TODO: early or lazy load DB?
-    // load();
+    load();
 
     int i;
     for(i = 1; i < argc; i++) {
@@ -282,7 +298,7 @@ int main(int argc, char *argv[]) {
     }
 
     // TODO: persist only if there was a modification?
-    // persist();
+    persist();
 
     return 0;
 }
