@@ -144,6 +144,31 @@ void delete(char *cmd) {
         // TODO: error
         return;
     }
+
+    int slot = getSlot(key);
+
+    struct Node *curr = hashmap[slot], *prev;
+
+    // special case where the first key itself is the one to delete
+    if (curr != NULL && curr->key == key) {
+        hashmap[slot] = curr->next;
+    } else {
+        while(curr->next != NULL || curr->key == key) {
+            if (curr->key == key) {
+                break;
+            }
+
+            prev = curr;
+            curr = curr->next;
+        }
+
+        prev->next = curr->next;
+        curr->next = NULL;
+    }
+
+    printf("Deleted key:%d\n", key);
+    // free(curr->value);
+    // free(curr);
 }
 
 void clear(char *cmd) {
