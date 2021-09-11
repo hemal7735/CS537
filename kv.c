@@ -81,8 +81,6 @@ void put(char *cmd) {
         return;
     }
 
-    printf("key:%d , value: %s\n", key, value);
-
     // 3. check if there is any more token. it should not ideally
     token = strsep(&cmd, ",");
     if (token != NULL) {
@@ -104,8 +102,6 @@ void get(char *cmd) {
 
     // TODO: atoi is not safe, find better function?
     int key = atoi(token);
-    printf("searching by the key:%d\n", key);
-
     // TODO: find value and print
 
     // 2. check if there is any more token. it should not ideally
@@ -118,9 +114,9 @@ void get(char *cmd) {
     struct Node* node = lookup(key);
 
     if (node == NULL) {
-        printf("NOT FOUND - key: %d in the DB\n", key);
+        printf("%d not found\n", key);
     } else {
-        printf("FOUND - key: %d, value:%s", key, node->value);
+        printf("%d,%s", key, node->value);
     }
 }
 
@@ -149,7 +145,10 @@ void delete(char *cmd) {
 
     struct Node *curr = hashmap[slot], *prev;
 
-    if (curr == NULL) return;
+    if (curr == NULL) {
+        printf("%d not found\n", key);
+        return;
+    }
 
     // special case where the first key itself is the one to delete
     if (curr != NULL && curr->key == key) {
@@ -166,10 +165,10 @@ void delete(char *cmd) {
             prev->next = curr->next;
             free(curr->value);
             free(curr);
+        } else {
+            printf("%d not found\n", key);
         }
     }
-
-    printf("Deleted key:%d\n", key);
 }
 
 void clear(char *cmd) {
@@ -181,7 +180,6 @@ void clear(char *cmd) {
     }
 
     memset(hashmap, 0, sizeof hashmap);
-    puts("cleared!");
 }
 
 void all(char *cmd) {
@@ -196,7 +194,6 @@ void all(char *cmd) {
     int i;
     struct Node *head;
 
-    puts("Trying to dump all info to console...");
     int isEmpty = 1;
 
     for(i = 0; i < size; i++) {
@@ -212,7 +209,7 @@ void all(char *cmd) {
     }
 
     if (isEmpty) {
-        puts("Oops, seems like DB is empty!");
+        // puts("Oops, seems like DB is empty!");
     }
 
 }
@@ -226,22 +223,17 @@ void executeCmd(char *cmd) {
     char* op = strsep(&cmd, ",");
 
     if (strcmp(op, PUT) == 0) {
-        puts("Trying to execute PUT cmd");
         put(cmd);
     } else if (strcmp(op, GET) == 0) {
-        puts("Trying to execute GET cmd");
         get(cmd);
     } else if (strcmp(op, DELETE) == 0) {
-        puts("Trying to execute DELETE cmd");
         delete(cmd);
     } else if (strcmp(op, CLEAR) == 0) {
-        puts("Trying to execute CLEAR cmd");
         clear(cmd);
     } else if (strcmp(op, ALL) == 0) {
-        puts("Trying to execute ALL cmd");
         all(cmd);
     } else {
-        printf("ERROR: Unsupported command found. Actual command was: %s\n", cmd);
+        puts("Bad command");
     }
 }
 
@@ -287,8 +279,6 @@ void persist() {
     int i;
     struct Node *head;
 
-    puts("Trying to persist...");
-
     for(i = 0; i < size; i++) {
         // TODO: get the first node and then iterate until NULL
         head = hashmap[i];
@@ -300,9 +290,6 @@ void persist() {
     }
    
     fclose(fp);
-
-    puts("Persist DONE!");
-
 }
 
 
