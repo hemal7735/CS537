@@ -149,26 +149,27 @@ void delete(char *cmd) {
 
     struct Node *curr = hashmap[slot], *prev;
 
+    if (curr == NULL) return;
+
     // special case where the first key itself is the one to delete
     if (curr != NULL && curr->key == key) {
         hashmap[slot] = curr->next;
+        free(curr->value);
+        free(curr);
     } else {
-        while(curr->next != NULL || curr->key == key) {
-            if (curr->key == key) {
-                break;
-            }
-
+        while(curr->next != NULL && curr->key != key) {
             prev = curr;
             curr = curr->next;
         }
 
-        prev->next = curr->next;
-        curr->next = NULL;
+        if (curr->key == key) {
+            prev->next = curr->next;
+            free(curr->value);
+            free(curr);
+        }
     }
 
     printf("Deleted key:%d\n", key);
-    // free(curr->value);
-    // free(curr);
 }
 
 void clear(char *cmd) {
