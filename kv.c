@@ -116,7 +116,7 @@ void get(char *cmd) {
     if (node == NULL) {
         printf("%d not found\n", key);
     } else {
-        printf("%d,%s", key, node->value);
+        printf("%d,%s\n", key, node->value);
     }
 }
 
@@ -202,7 +202,7 @@ void all(char *cmd) {
 
         while (head != NULL) {
             isEmpty = 0;
-            printf("key:%d, value:%s\n", head->key, head->value);
+            printf("key:%d,value:%s\n", head->key, head->value);
             head = head->next;
         }
 
@@ -251,15 +251,17 @@ void load() {
         int key = 0, len;
 
         while ((linelen = getline(&linebuff, &linecap, fp)) > 0) {
+            // neat trick to avoid \n last character which getline() doesn't omit
+            if (linebuff[linelen - 1] == '\n') {
+                linebuff[linelen - 1] = '\0';
+            }
+
             // first token is key - integer
             // atoi is safe to use here as we know what we inserted into the DB
             key = atoi(strsep(&linebuff, ","));
             
             // second token is value - string
             value = strsep(&linebuff, ",");
-
-            // neat trick to avoid \n last character which getline() doesn't omit
-            value[strcspn(value, "\n")] = 0;
 
             putInSlot(key, value);
         }
