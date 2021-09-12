@@ -242,7 +242,8 @@ void load() {
     FILE *fp = fopen(DB_FILE_NAME, "r"); 
     // no file found. Initialize the data structure manually
     if (fp == NULL) {
-        printf("No file found\n");
+        // printf("No file found\n");
+        return;
     } else {
         // read the file and parse the data
         char *linebuff = NULL, *value = NULL;
@@ -268,9 +269,8 @@ void load() {
 
         // TODO: free value?
         free(linebuff);
+        fclose(fp);
     }
-
-    fclose(fp);
 }
 
 // transform data-structure to the external file on the disk
