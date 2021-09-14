@@ -8,7 +8,7 @@ struct Node {
     struct Node *next;
 };
 
-struct Node *hashmap[100];
+struct Node *hashmap[(int)1e5 + 7];
 
 char DB_FILE_NAME[] = "database.txt";
 char PUT[] = "p";
@@ -298,8 +298,7 @@ void persist() {
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
-        printf("You need to pass at least one argument!\n");
-        return -1;
+        return 0;
     }
 
     // printf("total operations: %d\n", argc - 1);
