@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include <ctype.h>
 
 struct Node {
     int key;
@@ -23,6 +24,17 @@ int getSize() {
 
 int getSlot(int key) {
     return key%getSize();
+}
+
+int isNum(char* s) {
+    int i;
+    for(i = 0; s[i]; i++) {
+        if (!isdigit(s[i])) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 struct Node* lookup(int key) {
@@ -66,8 +78,8 @@ void put(char *cmd) {
     char *token, *value;
     // 1. grab key
     token = strsep(&cmd, ",");
-    if (token == NULL) {
-        // TODO: error
+    if (token == NULL || !isNum(token)) {
+        puts("bad command");
         return;
     }
 
@@ -77,14 +89,14 @@ void put(char *cmd) {
     // 2. grab value
     value = strsep(&cmd, ",");
     if (value == NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
     // 3. check if there is any more token. it should not ideally
     token = strsep(&cmd, ",");
     if (token != NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
@@ -95,8 +107,8 @@ void get(char *cmd) {
     char *token;
     // 1. grab key
     token = strsep(&cmd, ",");
-    if (token == NULL) {
-        // TODO: error
+    if (token == NULL || !isNum(token)) {
+        puts("bad command");
         return;
     }
 
@@ -107,7 +119,7 @@ void get(char *cmd) {
     // 2. check if there is any more token. it should not ideally
     token = strsep(&cmd, ",");
     if (token != NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
@@ -124,8 +136,8 @@ void delete(char *cmd) {
     char *token;
     // 1. grab key
     token = strsep(&cmd, ",");
-    if (token == NULL) {
-        // TODO: error
+    if (token == NULL || !isNum(token)) {
+        puts("bad command");
         return;
     }
 
@@ -137,7 +149,7 @@ void delete(char *cmd) {
     // 2. check if there is any more token. it should not ideally
     token = strsep(&cmd, ",");
     if (token != NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
@@ -153,8 +165,8 @@ void delete(char *cmd) {
     // special case where the first key itself is the one to delete
     if (curr != NULL && curr->key == key) {
         hashmap[slot] = curr->next;
-        free(curr->value);
-        free(curr);
+        // free(curr->value);
+        // free(curr);
     } else {
         while(curr->next != NULL && curr->key != key) {
             prev = curr;
@@ -163,8 +175,8 @@ void delete(char *cmd) {
 
         if (curr->key == key) {
             prev->next = curr->next;
-            free(curr->value);
-            free(curr);
+            // free(curr->value);
+            // free(curr);
         } else {
             printf("%d not found\n", key);
         }
@@ -175,7 +187,7 @@ void clear(char *cmd) {
     // check if there is any more token. it should not ideally
     char *token = strsep(&cmd, ",");
     if (token != NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
@@ -186,7 +198,7 @@ void all(char *cmd) {
      // check if there is any more token. it should not ideally
     char *token = strsep(&cmd, ",");
     if (token != NULL) {
-        // TODO: error
+        puts("bad command");
         return;
     }
 
@@ -202,7 +214,7 @@ void all(char *cmd) {
 
         while (head != NULL) {
             isEmpty = 0;
-            printf("key:%d,value:%s\n", head->key, head->value);
+            printf("%d,%s\n", head->key, head->value);
             head = head->next;
         }
 
@@ -233,7 +245,7 @@ void executeCmd(char *cmd) {
     } else if (strcmp(op, ALL) == 0) {
         all(cmd);
     } else {
-        puts("Bad command");
+        puts("bad command");
     }
 }
 
