@@ -16,6 +16,19 @@
 #include "file.h"
 #include "fcntl.h"
 
+struct {
+  struct spinlock lock;
+  int count;
+} ioevent;
+
+struct spinlock iocountLock;
+
+void iocountInit() {
+  ioevent.count = 0;
+  initlock(&ioevent.lock, "ioeventLock");
+}
+
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -73,6 +86,10 @@ sys_read(void)
   int n;
   char *p;
 
+  acquire(&ioevent.lock);
+  ioevent.count++;
+  release(&ioevent.lock);
+
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
   return fileread(f, p, n);
@@ -85,9 +102,19 @@ sys_write(void)
   int n;
   char *p;
 
+  acquire(&ioevent.lock);
+  ioevent.count++;
+  release(&ioevent.lock);
+
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
   return filewrite(f, p, n);
+}
+
+int
+sys_getiocount(void)
+{
+  return ioevent.count;
 }
 
 int
