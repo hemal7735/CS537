@@ -3,8 +3,27 @@
 #include<string.h>
 #include<ctype.h>
 
+char *EXIT = "exit";
+
+void execute(char *cmd) {
+
+}
+
 void interactiveMode() {
     puts("Interactive mode");
+    char input[1024];
+
+    while(1) {
+        printf("wish> ");
+
+        gets(input);
+
+        if (strcmp(input, EXIT) == 0) {
+            break;
+        }
+
+        // break;
+    }
 }
 
 void batchMode(char *filePath) {
