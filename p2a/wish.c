@@ -4,11 +4,22 @@
 #include<ctype.h>
 
 char *EXIT = "exit";
+char *LOOP = "loop";
 
 void execute(char *cmd) {
     printf("Command is:%s\n", cmd);
 
+    char *value = NULL;
 
+    value = strsep(&cmd, " ");
+
+    if (value != NULL && strcmp(value, LOOP) == 0) {
+        puts("value is loop");
+    }
+
+    // TODO: free any allocation
+    free(value);
+    free(cmd);
 }
 
 void interactiveMode() {
@@ -33,6 +44,7 @@ void interactiveMode() {
         execute(strdup(cmd));
     }
 
+    // TODO: free any allocation
     free(cmd);
 }
 
@@ -60,6 +72,7 @@ void batchMode(char *filename) {
         execute(strdup(linebuff));
     }
 
+    // TODO: free any allocation
     free(linebuff);
     fclose(fp);
 }
