@@ -2,10 +2,13 @@
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
+#include<unistd.h>
 
 char *EXIT = "exit";
 char *LOOP = "loop";
 char *$LOOP = "$loop";
+char *GLOBAL_PATHS[1] = {"/bin/"};
+int PATHS_LEN = 1;
 
 int isNum(char* s) {
     int i;
@@ -18,10 +21,61 @@ int isNum(char* s) {
     return 1;
 }
 
+void exec(char *cmdStr) {
+    int pid = fork();
+
+    if (pid < 0) { // error
+        // TODO: handle error
+        exit(1);
+    } else if (pid != 0) { // parent
+        wait(NULL);
+    } else { // child
+        // TODO: redirection
+        // loop 2 echo hello world $loop
+        char *args[3] = {NULL, NULL, NULL};
+
+        char *token = strsep(&cmdStr, " ");
+        // 1. get command and put it into the first slot
+        if (token == NULL) {
+            exit(1);
+        } else {
+            args[0] = strdup(token);
+        }
+
+        // 2. rest of the part copy only if it's not null
+        if (cmdStr != NULL) {
+            args[1] = strdup(cmdStr);
+        }
+
+        char tryPath[200];
+
+        int i = 0;
+        for(i = 0; i < PATHS_LEN; i++) {
+            tryPath[0] = '\0';
+
+            strcat(tryPath, GLOBAL_PATHS[i]);
+            strcat(tryPath, args[0]);
+
+            if (access(tryPath, X_OK) == 0) {
+                // printf("found at: %d\n", i);
+                // puts(fullPath);
+                break;
+            }
+        }
+
+        if (i != PATHS_LEN) {
+            args[0] = strdup(tryPath);
+        }
+
+        execv(args[0], args);
+        puts("should not print");
+    }
+}
+
 char* substituteLoopVariable(char *cmd, int i) {
     char *subCmd = malloc(200 * sizeof(char));
     // clear the memory as we don't know what is store there
-    memset(subCmd, 0, 200);
+    subCmd[0] = '\0';
 
     char *token = NULL;
     char val[20];
@@ -48,7 +102,7 @@ char* substituteLoopVariable(char *cmd, int i) {
 }
 
 void parseAndExec(char *cmd) {
-    printf("Command is:%s\n", cmd);
+    // printf("Command is:%s\n", cmd);
 
     char *token = NULL;
     int loopCount = 0;
@@ -72,7 +126,7 @@ void parseAndExec(char *cmd) {
 
     loopCount = atoi(token);
 
-    // replace the $loop va
+    // 3. replace the $loop var
     int i = 0;
     char *cmdCopy = NULL;
 
@@ -81,10 +135,10 @@ void parseAndExec(char *cmd) {
         // printf("sub for %d\n", i);
         cmdCopy = substituteLoopVariable(strdup(cmd), i);
 
-        printf("original:%s, sub:%s\n", cmd, cmdCopy);
+        // printf("original:%s, sub:%s\n", cmd, cmdCopy);
 
         // execute the command
-        exec(cmdCopy);
+        exec(strdup(cmdCopy));
 
         free(cmdCopy);
     }
@@ -92,7 +146,7 @@ void parseAndExec(char *cmd) {
 }
 
 void interactiveMode() {
-    puts("Interactive mode");
+    // puts("Interactive mode");
     char *cmd = NULL;
     size_t len = 100;
     ssize_t cmdlen;
@@ -118,7 +172,7 @@ void interactiveMode() {
 }
 
 void batchMode(char *filename) {
-    puts("batch mode");
+    // puts("batch mode");
 
     FILE *fp = fopen(filename, "r");
 

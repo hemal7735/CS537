@@ -1,1 +1,2 @@
-loop 2 echo world $loop
+loop 1 echo hello
+loop 1 ./test1
