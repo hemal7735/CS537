@@ -6,30 +6,65 @@
 char *EXIT = "exit";
 
 void execute(char *cmd) {
+    printf("Command is:%s\n", cmd);
+
 
 }
 
 void interactiveMode() {
     puts("Interactive mode");
-    char input[1024];
+    char *cmd = NULL;
+    size_t len = 100;
+    ssize_t cmdlen;
 
     while(1) {
         printf("wish> ");
 
-        gets(input);
+        cmdlen = getline(&cmd, &len, stdin);
 
-        if (strcmp(input, EXIT) == 0) {
+        if (cmd[cmdlen - 1] == '\n') {
+            cmd[cmdlen - 1] = '\0';
+        }
+
+        if (strcmp(cmd, EXIT) == 0) {
             break;
         }
 
-        // break;
+        execute(strdup(cmd));
     }
+
+    free(cmd);
 }
 
-void batchMode(char *filePath) {
+void batchMode(char *filename) {
     puts("batch mode");
+
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL) {
+        puts("no file found\n");
+        fclose(fp);
+        return;
+    }
+
+    char *linebuff = NULL;
+    size_t linecap = 0;
+    ssize_t linelen;
+
+    while ((linelen = getline(&linebuff, &linecap, fp)) > 0) {
+        // neat trick to avoid \n last character which getline() doesn't omit
+        if (linebuff[linelen - 1] == '\n') {
+            linebuff[linelen - 1] = '\0';
+        }
+
+        execute(strdup(linebuff));
+    }
+
+    free(linebuff);
+    fclose(fp);
 }
 
+// TODO: merge 2 input functionality common pieces?
 int main(int argc, char *argv[]) {
     // we just accept one parameter
     switch (argc)
@@ -39,9 +74,9 @@ int main(int argc, char *argv[]) {
             break;
         case 2:
             batchMode(argv[1]);
-            /* code */
             break;
         default:
+            // TODO: print something for invalid command
             break;
     }
 
