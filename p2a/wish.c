@@ -5,21 +5,90 @@
 
 char *EXIT = "exit";
 char *LOOP = "loop";
+char *$LOOP = "$loop";
 
-void execute(char *cmd) {
-    printf("Command is:%s\n", cmd);
-
-    char *value = NULL;
-
-    value = strsep(&cmd, " ");
-
-    if (value != NULL && strcmp(value, LOOP) == 0) {
-        puts("value is loop");
+int isNum(char* s) {
+    int i;
+    for(i = 0; s[i]; i++) {
+        if (!isdigit(s[i])) {
+            return 0;
+        }
     }
 
-    // TODO: free any allocation
-    free(value);
-    free(cmd);
+    return 1;
+}
+
+char* substituteLoopVariable(char *cmd, int i) {
+    char *subCmd = malloc(200 * sizeof(char));
+    // clear the memory as we don't know what is store there
+    memset(subCmd, 0, 200);
+
+    char *token = NULL;
+    char val[20];
+    int count = 0;
+
+    while((token=strsep(&cmd, " ")) != NULL) {
+        if (count != 0) {
+            strcat(subCmd, " ");         
+        }
+
+        count++;
+
+        if (strcmp(token, $LOOP) == 0) {
+            sprintf(val, "%d", i);
+            strcat(subCmd, val);
+        } else {
+            strcat(subCmd, token);
+        }
+    }
+
+    free(token);
+
+    return subCmd;
+}
+
+void parseAndExec(char *cmd) {
+    printf("Command is:%s\n", cmd);
+
+    char *token = NULL;
+    int loopCount = 0;
+
+    // 1. check for the "loop" command
+    token = strsep(&cmd, " ");
+
+    if (token == NULL || strcmp(token, LOOP) != 0) {
+        free(token);
+        free(cmd);
+        return;
+    }
+
+    // 2. check for the loop counter value
+    token = strsep(&cmd, " ");
+
+    if (!isNum(token)) {
+        free(cmd);
+        return;
+    }
+
+    loopCount = atoi(token);
+
+    // replace the $loop va
+    int i = 0;
+    char *cmdCopy = NULL;
+
+    for(i = 0; i < loopCount; i++) {
+        // replace the $loop variable if it exist
+        // printf("sub for %d\n", i);
+        cmdCopy = substituteLoopVariable(strdup(cmd), i);
+
+        printf("original:%s, sub:%s\n", cmd, cmdCopy);
+
+        // execute the command
+        exec(cmdCopy);
+
+        free(cmdCopy);
+    }
+
 }
 
 void interactiveMode() {
@@ -41,7 +110,7 @@ void interactiveMode() {
             break;
         }
 
-        execute(strdup(cmd));
+        parseAndExec(strdup(cmd));
     }
 
     // TODO: free any allocation
@@ -69,7 +138,7 @@ void batchMode(char *filename) {
             linebuff[linelen - 1] = '\0';
         }
 
-        execute(strdup(linebuff));
+        parseAndExec(strdup(linebuff));
     }
 
     // TODO: free any allocation
