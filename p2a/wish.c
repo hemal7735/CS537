@@ -11,7 +11,7 @@ char *LOOP = "loop";
 
 char *$LOOP = "$loop";
 char *GLOBAL_PATHS[100];
-int PATHS_LEN = 0;
+int PATHS_LEN = 1;
 
 int isNum(char* s) {
     int i;
@@ -110,6 +110,7 @@ char* substituteLoopVariable(char *cmd, int i) {
 void cdExit(char *cmd) {
     if (cmd != NULL) {
         // TODO: handle error
+        puts("bad exit");
         return;
     }
 }
@@ -185,7 +186,7 @@ void parseAndExec(char *cmd) {
 
     if (strcmp(token, EXIT) == 0) {
         cdExit(cmd);
-        exit(0);
+        return;
     }
 
     if (strcmp(token, CD) == 0) {
@@ -207,7 +208,6 @@ void parseAndExec(char *cmd) {
 }
 
 void interactiveMode() {
-    // puts("Interactive mode");
     char *cmd = NULL;
     size_t len = 100;
     ssize_t cmdlen;
@@ -229,8 +229,6 @@ void interactiveMode() {
 }
 
 void batchMode(char *filename) {
-    // puts("batch mode");
-
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
