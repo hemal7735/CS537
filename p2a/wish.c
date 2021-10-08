@@ -13,6 +13,23 @@ char *$LOOP = "$loop";
 char *GLOBAL_PATHS[100];
 int PATHS_LEN = 1;
 
+char *trim(char *s) {
+    char *end;
+
+    while(isspace((unsigned char)*s)) s++;
+
+    if(*s == 0)
+        return s;
+
+    end = s + strlen(s) - 1;
+
+    while(end > s && isspace((unsigned char)*end)) end--;
+    // terminate string
+    end[1] = '\0';
+
+    return s;
+}
+
 int isNum(char* s) {
     int i;
     for(i = 0; s[i]; i++) {
@@ -34,6 +51,9 @@ void exec(char *cmdStr) {
         wait(NULL);
     } else { // child
         // TODO: redirection
+        // should be only one file
+        // should be only >
+        // should be command before >
         // loop 2 echo hello world $loop
         char *args[3] = {NULL, NULL, NULL};
 
@@ -221,6 +241,8 @@ void interactiveMode() {
             cmd[cmdlen - 1] = '\0';
         }
 
+        cmd = trim(cmd);
+
         parseAndExec(strdup(cmd));
     }
 
@@ -246,6 +268,8 @@ void batchMode(char *filename) {
         if (linebuff[linelen - 1] == '\n') {
             linebuff[linelen - 1] = '\0';
         }
+
+        linebuff = trim(linebuff);
 
         parseAndExec(strdup(linebuff));
     }
