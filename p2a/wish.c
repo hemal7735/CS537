@@ -13,17 +13,41 @@ char *$LOOP = "$loop";
 char *GLOBAL_PATHS[100];
 int PATHS_LEN = 1;
 
+char errorMsg[30] = "An error has occurred\n";
+
+void safeFree(char *s) {
+    if (s != NULL) {
+        free(s);
+    }
+}
+
+void safeClose(FILE *fp) {
+    if (fp != NULL) {
+        fclose(fp);
+    }
+}
+
+void handleError() {
+    write(STDERR_FILENO, errorMsg, strlen(errorMsg)); 
+}
+
 char *trim(char *s) {
+    if (s == NULL) return s;
+
     char *end;
 
-    while(isspace((unsigned char)*s)) s++;
+    while(*s != 0 && isspace((unsigned char)*s)) {
+        s++;
+    }
 
     if(*s == 0)
         return s;
 
     end = s + strlen(s) - 1;
 
-    while(end > s && isspace((unsigned char)*end)) end--;
+    while(end > s && isspace((unsigned char)*end)) {
+        end--;
+    }
     // terminate string
     end[1] = '\0';
 
@@ -41,11 +65,12 @@ int isNum(char* s) {
     return 1;
 }
 
-void exec(char *cmdStr) {
+void nativeCmd(char *cmdStr) {
     int pid = fork();
 
     if (pid < 0) { // error
         // TODO: handle error
+        handleError();
         exit(1);
     } else if (pid != 0) { // parent
         wait(NULL);
@@ -87,13 +112,16 @@ void exec(char *cmdStr) {
             }
         }
 
+        // TODO: remove this
+        // printf("tried path is:%s\n", tryPath);
+
         if (i != PATHS_LEN) {
             args[0] = strdup(tryPath);
         }
 
         if (execv(args[0], args) == -1) {
             // TODO: handle error
-            puts("error: invalid command");
+            handleError();
         }
     }
 }
@@ -127,12 +155,12 @@ char* substituteLoopVariable(char *cmd, int i) {
     return subCmd;
 }
 
-void cdExit(char *cmd) {
+void exitCmd(char *cmd) {
+    // puts(cmd);
     if (cmd != NULL) {
-        // TODO: handle error
-        puts("bad exit");
-        return;
+        handleError();
     }
+    exit(0);
 }
 
 void cdCmd(char *cmd) {
@@ -142,6 +170,7 @@ void cdCmd(char *cmd) {
         // TODO: handle error
         // printf("Path is missing or there are more variables\n");
         // printf("path:%s, cmd:%s\n", path, cmd);
+        handleError();
         return;
     }
 
@@ -186,26 +215,30 @@ void loopCmd(char *cmd) {
         // printf("original:%s, sub:%s\n", cmd, cmdCopy);
 
         // execute the command
-        exec(strdup(cmdCopy));
+        nativeCmd(strdup(cmdCopy));
 
         free(cmdCopy);
     }
 }
 
 void parseAndExec(char *cmd) {
-    // printf("Command is:%s\n", cmd);
+    // TODO: remove this
+    printf("Command is:%s\n", cmd);
 
-    char *token = strsep(&cmd, " ");
+    char *token = trim(strsep(&cmd, " "));
 
     if (token == NULL) {
-        // TODO: handle error
+        // puts("null cmd");
+        handleError();
         free(token);
         free(cmd);
         return;
     }
 
+    cmd = trim(cmd);
+
     if (strcmp(token, EXIT) == 0) {
-        cdExit(cmd);
+        exitCmd(cmd);
         return;
     }
 
@@ -224,7 +257,18 @@ void parseAndExec(char *cmd) {
         return;
     }
 
-    // TODO: any other command throw error
+    // we need to copy the command
+    char command[200] = "";
+
+    strcat(command, token);
+
+    if (cmd != NULL) {
+        strcat(command, " ");
+        strcat(command, cmd);
+    }
+
+    puts(command);
+    nativeCmd((char *)&command);
 }
 
 void interactiveMode() {
@@ -241,22 +285,18 @@ void interactiveMode() {
             cmd[cmdlen - 1] = '\0';
         }
 
-        cmd = trim(cmd);
-
-        parseAndExec(strdup(cmd));
+        parseAndExec(strdup(trim(cmd)));
+        safeFree(cmd);
     }
-
-    // TODO: free any allocation
-    free(cmd);
 }
 
 void batchMode(char *filename) {
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        puts("no file found\n");
         fclose(fp);
-        return;
+        handleError();
+        exit(1);
     }
 
     char *linebuff = NULL;
@@ -269,14 +309,11 @@ void batchMode(char *filename) {
             linebuff[linelen - 1] = '\0';
         }
 
-        linebuff = trim(linebuff);
-
-        parseAndExec(strdup(linebuff));
+        parseAndExec(strdup(trim(linebuff)));
+        safeFree(linebuff);
     }
 
-    // TODO: free any allocation
-    free(linebuff);
-    fclose(fp);
+    safeClose(fp);
 }
 
 // TODO: merge 2 input functionality common pieces?
@@ -293,6 +330,8 @@ int main(int argc, char *argv[]) {
             break;
         default:
             // TODO: print something for invalid command
+            handleError();
+            exit(1);
             break;
     }
 
