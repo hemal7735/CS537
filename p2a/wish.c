@@ -5,9 +5,12 @@
 #include<unistd.h>
 
 char *EXIT = "exit";
+char *CD = "cd";
+char *PATH = "path";
 char *LOOP = "loop";
+
 char *$LOOP = "$loop";
-char *GLOBAL_PATHS[1] = {"/bin/"};
+char *GLOBAL_PATHS[100];
 int PATHS_LEN = 1;
 
 int isNum(char* s) {
@@ -54,6 +57,7 @@ void exec(char *cmdStr) {
             tryPath[0] = '\0';
 
             strcat(tryPath, GLOBAL_PATHS[i]);
+            strcat(tryPath, "/");
             strcat(tryPath, args[0]);
 
             if (access(tryPath, X_OK) == 0) {
@@ -101,22 +105,18 @@ char* substituteLoopVariable(char *cmd, int i) {
     return subCmd;
 }
 
-void parseAndExec(char *cmd) {
-    // printf("Command is:%s\n", cmd);
+void cdCmd(char *cmd) {
 
+}
+
+void pathCmd(char *cmd) {
+
+}
+
+void loopCmd(char *cmd) {
     char *token = NULL;
-    int loopCount = 0;
 
-    // 1. check for the "loop" command
-    token = strsep(&cmd, " ");
-
-    if (token == NULL || strcmp(token, LOOP) != 0) {
-        free(token);
-        free(cmd);
-        return;
-    }
-
-    // 2. check for the loop counter value
+    // 1. check for the loop counter value
     token = strsep(&cmd, " ");
 
     if (!isNum(token)) {
@@ -124,9 +124,9 @@ void parseAndExec(char *cmd) {
         return;
     }
 
-    loopCount = atoi(token);
+    int loopCount = atoi(token);
 
-    // 3. replace the $loop var
+    // 2. replace the $loop var
     int i = 0;
     char *cmdCopy = NULL;
 
@@ -142,7 +142,42 @@ void parseAndExec(char *cmd) {
 
         free(cmdCopy);
     }
+}
 
+void parseAndExec(char *cmd) {
+    // printf("Command is:%s\n", cmd);
+
+    char *token = strsep(&cmd, " ");
+
+    if (token == NULL) {
+        // TODO: handle error
+        free(token);
+        free(cmd);
+        return;
+    }
+
+    if (strcmp(token, EXIT) == 0) {
+        free(token);
+        free(cmd);
+        exit(0);
+    }
+
+    if (strcmp(token, CD) == 0) {
+        cdCmd(cmd);
+        return;
+    }
+
+    if (strcmp(token, PATH) == 0) {
+        pathCmd(cmd);
+        return;
+    }
+
+    if (strcmp(token, LOOP) == 0) {
+        loopCmd(cmd);
+        return;
+    }
+
+    // TODO: any other command throw error
 }
 
 void interactiveMode() {
@@ -158,10 +193,6 @@ void interactiveMode() {
 
         if (cmd[cmdlen - 1] == '\n') {
             cmd[cmdlen - 1] = '\0';
-        }
-
-        if (strcmp(cmd, EXIT) == 0) {
-            break;
         }
 
         parseAndExec(strdup(cmd));
@@ -202,6 +233,7 @@ void batchMode(char *filename) {
 
 // TODO: merge 2 input functionality common pieces?
 int main(int argc, char *argv[]) {
+    GLOBAL_PATHS[0] = "/bin";
     // we just accept one parameter
     switch (argc)
     {

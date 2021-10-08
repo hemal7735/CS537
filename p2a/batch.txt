@@ -1,2 +1,2 @@
-loop 1 echo hello
-loop 1 ./test1
+loop 3 ./test1
+exit
