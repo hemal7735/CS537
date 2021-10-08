@@ -11,7 +11,7 @@ char *LOOP = "loop";
 
 char *$LOOP = "$loop";
 char *GLOBAL_PATHS[100];
-int PATHS_LEN = 1;
+int PATHS_LEN = 0;
 
 int isNum(char* s) {
     int i;
@@ -71,8 +71,10 @@ void exec(char *cmdStr) {
             args[0] = strdup(tryPath);
         }
 
-        execv(args[0], args);
-        puts("should not print");
+        if (execv(args[0], args) == -1) {
+            // TODO: handle error
+            puts("error: invalid command");
+        }
     }
 }
 
@@ -122,7 +124,13 @@ void cdCmd(char *cmd) {
 }
 
 void pathCmd(char *cmd) {
-    
+    int i = 0;
+
+    while((GLOBAL_PATHS[i] = strsep(&cmd, " ")) != NULL) {
+        i++;
+    }
+
+    PATHS_LEN = i;
 }
 
 void loopCmd(char *cmd) {

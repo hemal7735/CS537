@@ -1,3 +1,4 @@
 loop 3 ./test1
+path 
 cd ../
 loop 1 ls -l
