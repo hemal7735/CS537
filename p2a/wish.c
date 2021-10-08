@@ -106,11 +106,23 @@ char* substituteLoopVariable(char *cmd, int i) {
 }
 
 void cdCmd(char *cmd) {
+    char *dirPath = strsep(&cmd, " ");
 
+    if (dirPath == NULL || cmd != NULL) {
+        // TODO: handle error
+        // printf("Path is missing or there are more variables\n");
+        // printf("path:%s, cmd:%s\n", path, cmd);
+        return;
+    }
+
+    if (chdir(dirPath) != 0) {
+        // TODO: handle error
+        return;
+    }
 }
 
 void pathCmd(char *cmd) {
-
+    
 }
 
 void loopCmd(char *cmd) {

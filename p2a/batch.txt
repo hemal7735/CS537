@@ -1,2 +1,3 @@
 loop 3 ./test1
-exit
+cd ../
+loop 1 ls -l
