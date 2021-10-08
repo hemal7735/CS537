@@ -1,5 +1,6 @@
-
-
-
-
-exit
+#> hello  
+#something > hello world  
+#something >  
+#>
+# >
+# command > output.txt 

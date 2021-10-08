@@ -15,6 +15,11 @@ int PATHS_LEN = 1;
 
 char errorMsg[30] = "An error has occurred\n";
 
+int isEmpty(char *s) {
+    if (s == NULL || strcmp(s, "") == 0) return 1;
+    return 0;
+}
+
 void safeFree(char *s) {
     if (s != NULL) {
         free(s);
@@ -65,6 +70,45 @@ int isNum(char* s) {
     return 1;
 }
 
+
+// returns length of parts
+//          -1: if invalid
+//          0: if there is no >
+//          2: if valid (some command > filename)
+int parseForIndirection(char **args, char *cmd) {
+    // base condition
+    if (cmd == NULL) return 0;
+
+    int i = 0;
+    char *token = NULL;
+
+    while((token = trim(strsep(&cmd, ">"))) != NULL) {
+        args[i] = token;
+        i++;
+    }
+
+    if (i == 0) return 0; // no > found
+    if (i > 2) return -1; // more than 1 > found
+
+    // first part cannot be empty
+    if (isEmpty(args[0])) return -1;
+
+    // if there are only 2 tokens then we need to check if there are multiple files present
+    char *outputPart = strdup(args[i - 1]);
+
+    token = trim(strsep(&outputPart, " "));
+
+    // there should be atleast one filename
+    if (isEmpty(token)) return -1;
+
+    token = trim(strsep(&outputPart, " "));
+    // it cannot have more than 1 filenames
+    if (!isEmpty(token)) return -1;
+
+    return i;
+}
+
+
 void nativeCmd(char *cmdStr) {
     int pid = fork();
 
@@ -77,9 +121,24 @@ void nativeCmd(char *cmdStr) {
     } else { // child
         // TODO: redirection
         // should be only one file
-        // should be only >
+        // should be only 1 >
         // should be command before >
-        // loop 2 echo hello world $loop
+        
+        char *indirectionArgs[50];
+
+        int len = parseForIndirection(indirectionArgs, strdup(cmdStr));
+
+        if (len == -1) {
+            printf("invalid as per > stand. len: %d\n", len);
+            handleError();
+            return;
+        } else {
+            printf("valid. len: %d\n", len);
+            exit(0);
+        }
+
+        // TODO: if valid > then do something
+
         char *args[3] = {NULL, NULL, NULL};
 
         char *token = strsep(&cmdStr, " ");
@@ -156,7 +215,6 @@ char* substituteLoopVariable(char *cmd, int i) {
 }
 
 void exitCmd(char *cmd) {
-    // puts(cmd);
     if (cmd != NULL) {
         handleError();
     }
@@ -223,7 +281,7 @@ void loopCmd(char *cmd) {
 
 void parseAndExec(char *cmd) {
     // TODO: remove this
-    printf("Command is:%s\n", cmd);
+    // printf("Command is:%s\n", cmd);
 
     char *token = trim(strsep(&cmd, " "));
 
@@ -267,7 +325,7 @@ void parseAndExec(char *cmd) {
         strcat(command, cmd);
     }
 
-    puts(command);
+    printf("native comamnd:%s\n", command);
     nativeCmd((char *)&command);
 }
 
@@ -309,8 +367,10 @@ void batchMode(char *filename) {
             linebuff[linelen - 1] = '\0';
         }
 
+        // TODO: remove this
+        if (linebuff[0] == '#') continue;
+
         parseAndExec(strdup(trim(linebuff)));
-        safeFree(linebuff);
     }
 
     safeClose(fp);
