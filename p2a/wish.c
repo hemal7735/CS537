@@ -45,7 +45,7 @@ void exec(char *cmdStr) {
             args[0] = strdup(token);
         }
 
-        // 2. rest of the part copy only if it's not null
+        // 2. copy rest of the part only if it's not null
         if (cmdStr != NULL) {
             args[1] = strdup(cmdStr);
         }
@@ -105,6 +105,13 @@ char* substituteLoopVariable(char *cmd, int i) {
     free(token);
 
     return subCmd;
+}
+
+void cdExit(char *cmd) {
+    if (cmd != NULL) {
+        // TODO: handle error
+        return;
+    }
 }
 
 void cdCmd(char *cmd) {
@@ -177,8 +184,7 @@ void parseAndExec(char *cmd) {
     }
 
     if (strcmp(token, EXIT) == 0) {
-        free(token);
-        free(cmd);
+        cdExit(cmd);
         exit(0);
     }
 
