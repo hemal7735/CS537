@@ -1,6 +1,6 @@
-#> hello  
-#something > hello world  
-#something >  
-#>
-# >
-# command > output.txt 
+ls -l > output.txt 
+cd ..
+#ls -d
+ls -d > output1.txt 
+#ls *.c
+#echo hello > echoOutput.txt

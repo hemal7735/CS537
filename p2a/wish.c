@@ -3,6 +3,7 @@
 #include<string.h>
 #include<ctype.h>
 #include<unistd.h>
+#include<fcntl.h>
 
 char *EXIT = "exit";
 char *CD = "cd";
@@ -71,6 +72,10 @@ int isNum(char* s) {
 }
 
 
+// should follow the below guidelines
+//          1. only one file
+//          2. should be only 1 >
+//          3. should be command before >
 // returns length of parts
 //          -1: if invalid
 //          0: if there is no >
@@ -108,7 +113,6 @@ int parseForIndirection(char **args, char *cmd) {
     return i;
 }
 
-
 void nativeCmd(char *cmdStr) {
     int pid = fork();
 
@@ -116,32 +120,36 @@ void nativeCmd(char *cmdStr) {
         // TODO: handle error
         handleError();
         exit(1);
-    } else if (pid != 0) { // parent
+    } else if (pid != 0) {
         wait(NULL);
     } else { // child
-        // TODO: redirection
-        // should be only one file
-        // should be only 1 >
-        // should be command before >
-        
         char *indirectionArgs[50];
 
         int len = parseForIndirection(indirectionArgs, strdup(cmdStr));
-
         if (len == -1) {
             printf("invalid as per > stand. len: %d\n", len);
             handleError();
             return;
         } else {
+            // TODO: remove this
             printf("valid. len: %d\n", len);
-            exit(0);
+            // exit(0);
         }
 
-        // TODO: if valid > then do something
+        // override the original command with anything before >
+        if (len == 2) {
+            cmdStr = indirectionArgs[0];
+            close(STDOUT_FILENO);
+            if (open(indirectionArgs[1], O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU) < 0) {
+                handleError();
+                return;
+            }
+        }
 
         char *args[3] = {NULL, NULL, NULL};
 
         char *token = strsep(&cmdStr, " ");
+        
         // 1. get command and put it into the first slot
         if (token == NULL) {
             exit(1);
@@ -178,9 +186,24 @@ void nativeCmd(char *cmdStr) {
             args[0] = strdup(tryPath);
         }
 
+        // puts(args[0]);
+        // puts(args[1]);
+        // args[0] = "/bin/ls";
+        // args[1] = "*.c";
+        // args[2] = NULL;
+
+        // char cwd[1000];
+
+        // if (getcwd(cwd, 1000) != NULL) {
+        //     printf("Current working dir: %s\n", cwd);
+        // } else {
+        //     puts("cwd error");
+        //     return;
+        // }
+
         if (execv(args[0], args) == -1) {
-            // TODO: handle error
             handleError();
+            return;
         }
     }
 }
@@ -223,8 +246,7 @@ void exitCmd(char *cmd) {
 
 void cdCmd(char *cmd) {
     char *dirPath = strsep(&cmd, " ");
-
-    if (dirPath == NULL || cmd != NULL) {
+    if (isEmpty(dirPath)|| !isEmpty(cmd)) {
         // TODO: handle error
         // printf("Path is missing or there are more variables\n");
         // printf("path:%s, cmd:%s\n", path, cmd);
@@ -234,6 +256,7 @@ void cdCmd(char *cmd) {
 
     if (chdir(dirPath) != 0) {
         // TODO: handle error
+        handleError();
         return;
     }
 }
@@ -344,7 +367,9 @@ void interactiveMode() {
         }
 
         parseAndExec(strdup(trim(cmd)));
-        safeFree(cmd);
+
+        // TODO: varify
+        // safeFree(cmd);
     }
 }
 
