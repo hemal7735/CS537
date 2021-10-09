@@ -87,7 +87,7 @@ int parseForIndirection(char **args, char *cmd) {
         i++;
     }
 
-    if (i == 0) return 0; // no > found
+    if (i <= 1) return 0; // no > found
     if (i > 2) return -1; // more than 1 > found
 
     // first part cannot be empty
