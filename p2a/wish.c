@@ -127,13 +127,13 @@ void nativeCmd(char *cmdStr) {
 
         int len = parseForIndirection(indirectionArgs, strdup(cmdStr));
         if (len == -1) {
+            // TODO: remove this
             printf("invalid as per > stand. len: %d\n", len);
             handleError();
             return;
         } else {
             // TODO: remove this
             printf("valid. len: %d\n", len);
-            // exit(0);
         }
 
         // override the original command with anything before >
@@ -146,25 +146,21 @@ void nativeCmd(char *cmdStr) {
             }
         }
 
-        char *args[3] = {NULL, NULL, NULL};
+        char *args[100];
+        memset(args, 0, 100);
 
-        char *token = strsep(&cmdStr, " ");
-        
-        // 1. get command and put it into the first slot
-        if (token == NULL) {
-            exit(1);
-        } else {
-            args[0] = strdup(token);
+        char *token = NULL;
+        int i = 0;
+
+        while((token = trim(strsep(&cmdStr, " "))) != NULL) {
+            args[i] = token;
+            i++;
         }
 
-        // 2. copy rest of the part only if it's not null
-        if (cmdStr != NULL) {
-            args[1] = strdup(cmdStr);
-        }
-
+        // get correct path
         char tryPath[200];
 
-        int i = 0;
+        i = 0;
         for(i = 0; i < PATHS_LEN; i++) {
             tryPath[0] = '\0';
 
@@ -188,9 +184,10 @@ void nativeCmd(char *cmdStr) {
 
         // puts(args[0]);
         // puts(args[1]);
-        // args[0] = "/bin/ls";
-        // args[1] = "*.c";
-        // args[2] = NULL;
+        // args[0] = "/bin/rm";
+        // args[1] = "-rf";
+        // args[2] = "./abc";
+        // args[3] = NULL;
 
         // char cwd[1000];
 
@@ -200,8 +197,13 @@ void nativeCmd(char *cmdStr) {
         //     puts("cwd error");
         //     return;
         // }
-
+        // puts(args[0]);
+        // puts(args[1]);
+        // puts(args[2]);
+        // puts(args[3]);
         if (execv(args[0], args) == -1) {
+            // TODO: remove this
+            // puts("could not exec command");
             handleError();
             return;
         }
@@ -303,6 +305,8 @@ void loopCmd(char *cmd) {
 }
 
 void parseAndExec(char *cmd) {
+    if (isEmpty(cmd)) return;
+
     // TODO: remove this
     // printf("Command is:%s\n", cmd);
 
@@ -369,7 +373,6 @@ void interactiveMode() {
         parseAndExec(strdup(trim(cmd)));
 
         // TODO: varify
-        // safeFree(cmd);
     }
 }
 
