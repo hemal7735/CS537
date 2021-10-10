@@ -130,12 +130,13 @@ void nativeCmd(char *cmdStr) {
         int len = parseForIndirection(indirectionArgs, strdup(cmdStr));
         if (len == -1) {
             // TODO: remove this
-            printf("invalid as per > stand. len: %d\n", len);
+            // printf("invalid as per > stand. len: %d\n", len);
+            // puts("error with >");
             handleError();
             return;
         } else {
             // TODO: remove this
-            printf("valid. len: %d\n", len);
+            // printf("valid. len: %d\n", len);
         }
 
         // override the original command with anything before >
@@ -143,13 +144,14 @@ void nativeCmd(char *cmdStr) {
             cmdStr = indirectionArgs[0];
             close(STDOUT_FILENO);
             if (open(indirectionArgs[1], O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU) < 0) {
+                // puts("error with redirection");
                 handleError();
                 return;
             }
         }
 
         char *args[100];
-        memset(args, 0, 100);
+        memset(args, 0, sizeof args);
 
         char *token = NULL;
         int i = 0;
@@ -206,8 +208,9 @@ void nativeCmd(char *cmdStr) {
         if (execv(args[0], args) == -1) {
             // TODO: remove this
             // puts("could not exec command");
+            // puts("error with execv");
             handleError();
-            return;
+            exit(0);
         }
     }
 }
@@ -236,13 +239,15 @@ char* substituteLoopVariable(char *cmd, int i) {
         }
     }
 
-    free(token);
+    // TODO: free
+    // free(token);
 
     return subCmd;
 }
 
 void exitCmd(char *cmd) {
     if (cmd != NULL) {
+        // puts("error with exit");
         handleError();
     }
     exit(0);
@@ -254,12 +259,14 @@ void cdCmd(char *cmd) {
         // TODO: handle error
         // printf("Path is missing or there are more variables\n");
         // printf("path:%s, cmd:%s\n", path, cmd);
+        // puts("error with path");
         handleError();
         return;
     }
 
     if (chdir(dirPath) != 0) {
         // TODO: handle error
+        // puts("error with path");
         handleError();
         return;
     }
@@ -281,18 +288,25 @@ void loopCmd(char *cmd) {
     // 1. check for the loop counter value
     token = strsep(&cmd, " ");
 
-    if (!isNum(token)) {
-        free(cmd);
+    if (isEmpty(token) || !isNum(token)) {
+        handleError();
+        // TODO: free
+        // free(cmd);
         return;
     }
 
     int loopCount = atoi(token);
 
+    if (loopCount < 0) {
+        handleError();
+        return;
+    }
+
     // 2. replace the $loop var
     int i = 0;
     char *cmdCopy = NULL;
 
-    for(i = 0; i < loopCount; i++) {
+    for(i = 1; i <= loopCount; i++) {
         // replace the $loop variable if it exist
         // printf("sub for %d\n", i);
         cmdCopy = substituteLoopVariable(strdup(cmd), i);
@@ -302,7 +316,8 @@ void loopCmd(char *cmd) {
         // execute the command
         nativeCmd(strdup(cmdCopy));
 
-        free(cmdCopy);
+        // TODO: free
+        // free(cmdCopy);
     }
 }
 
@@ -316,9 +331,11 @@ void parseAndExec(char *cmd) {
 
     if (token == NULL) {
         // puts("null cmd");
+        // puts("error with parseAndExec");
         handleError();
-        free(token);
-        free(cmd);
+        // TODO: free
+        // free(token);
+        // free(cmd);
         return;
     }
 
@@ -354,7 +371,7 @@ void parseAndExec(char *cmd) {
         strcat(command, cmd);
     }
 
-    printf("native comamnd:%s\n", command);
+    // printf("native comamnd:%s\n", command);
     nativeCmd((char *)&command);
 }
 
@@ -374,11 +391,17 @@ void interactiveMode() {
 
         parseAndExec(strdup(trim(cmd)));
 
-        // TODO: varify
+        // TODO: verify
     }
 }
 
 void batchMode(char *filename) {
+    // checking bad file
+    if (access(filename, F_OK | R_OK) != 0) {
+        handleError();
+        exit(1);
+    }
+
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
