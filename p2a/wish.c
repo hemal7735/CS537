@@ -4,6 +4,8 @@
 #include<ctype.h>
 #include<unistd.h>
 #include<fcntl.h>
+#include<sys/wait.h>
+#include<sys/types.h>
 
 char *EXIT = "exit";
 char *CD = "cd";
