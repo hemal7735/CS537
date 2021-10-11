@@ -119,7 +119,6 @@ void nativeCmd(char *cmdStr) {
     int pid = fork();
 
     if (pid < 0) { // error
-        // TODO: handle error
         handleError();
         exit(1);
     } else if (pid != 0) {
@@ -129,14 +128,8 @@ void nativeCmd(char *cmdStr) {
 
         int len = parseForIndirection(indirectionArgs, strdup(cmdStr));
         if (len == -1) {
-            // TODO: remove this
-            // printf("invalid as per > stand. len: %d\n", len);
-            // puts("error with >");
             handleError();
             return;
-        } else {
-            // TODO: remove this
-            // printf("valid. len: %d\n", len);
         }
 
         // override the original command with anything before >
@@ -144,7 +137,6 @@ void nativeCmd(char *cmdStr) {
             cmdStr = indirectionArgs[0];
             close(STDOUT_FILENO);
             if (open(indirectionArgs[1], O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU) < 0) {
-                // puts("error with redirection");
                 handleError();
                 return;
             }
@@ -173,14 +165,9 @@ void nativeCmd(char *cmdStr) {
             strcat(tryPath, args[0]);
 
             if (access(tryPath, X_OK) == 0) {
-                // printf("found at: %d\n", i);
-                // puts(fullPath);
                 break;
             }
         }
-
-        // TODO: remove this
-        // printf("tried path is:%s\n", tryPath);
 
         char *cmdPath = args[0];
 
@@ -188,29 +175,7 @@ void nativeCmd(char *cmdStr) {
             cmdPath = strdup(tryPath);
         }
 
-        // puts(args[0]);
-        // puts(args[1]);
-        // args[0] = "/bin/rm";
-        // args[1] = "-rf";
-        // args[2] = "./abc";
-        // args[3] = NULL;
-
-        // char cwd[1000];
-
-        // if (getcwd(cwd, 1000) != NULL) {
-        //     printf("Current working dir: %s\n", cwd);
-        // } else {
-        //     puts("cwd error");
-        //     return;
-        // }
-        // puts(args[0]);
-        // puts(args[1]);
-        // puts(args[2]);
-        // puts(args[3]);
         if (execv(cmdPath, args) == -1) {
-            // TODO: remove this
-            // puts("could not exec command");
-            // puts("error with execv");
             handleError();
             exit(0);
         }
@@ -241,8 +206,7 @@ char* substituteLoopVariable(char *cmd, int i) {
         }
     }
 
-    // TODO: free
-    // free(token);
+    safeFree(token);
 
     return subCmd;
 }
@@ -258,17 +222,11 @@ void exitCmd(char *cmd) {
 void cdCmd(char *cmd) {
     char *dirPath = strsep(&cmd, " ");
     if (isEmpty(dirPath)|| !isEmpty(cmd)) {
-        // TODO: handle error
-        // printf("Path is missing or there are more variables\n");
-        // printf("path:%s, cmd:%s\n", path, cmd);
-        // puts("error with path");
         handleError();
         return;
     }
 
     if (chdir(dirPath) != 0) {
-        // TODO: handle error
-        // puts("error with path");
         handleError();
         return;
     }
@@ -292,8 +250,6 @@ void loopCmd(char *cmd) {
 
     if (isEmpty(token) || !isNum(token)) {
         handleError();
-        // TODO: free
-        // free(cmd);
         return;
     }
 
@@ -310,34 +266,23 @@ void loopCmd(char *cmd) {
 
     for(i = 1; i <= loopCount; i++) {
         // replace the $loop variable if it exist
-        // printf("sub for %d\n", i);
         cmdCopy = substituteLoopVariable(strdup(cmd), i);
-
-        // printf("original:%s, sub:%s\n", cmd, cmdCopy);
 
         // execute the command
         nativeCmd(strdup(cmdCopy));
 
-        // TODO: free
-        // free(cmdCopy);
+        safeFree(cmdCopy);
     }
 }
 
 void parseAndExec(char *cmd) {
     if (isEmpty(cmd)) return;
 
-    // TODO: remove this
-    // printf("Command is:%s\n", cmd);
-
     char *token = trim(strsep(&cmd, " "));
 
     if (token == NULL) {
-        // puts("null cmd");
-        // puts("error with parseAndExec");
         handleError();
-        // TODO: free
-        // free(token);
-        // free(cmd);
+        safeFree(cmd);
         return;
     }
 
@@ -373,7 +318,6 @@ void parseAndExec(char *cmd) {
         strcat(command, cmd);
     }
 
-    // printf("native comamnd:%s\n", command);
     nativeCmd((char *)&command);
 }
 
@@ -392,8 +336,6 @@ void interactiveMode() {
         }
 
         parseAndExec(strdup(trim(cmd)));
-
-        // TODO: verify
     }
 }
 
@@ -422,9 +364,6 @@ void batchMode(char *filename) {
             linebuff[linelen - 1] = '\0';
         }
 
-        // TODO: remove this
-        if (linebuff[0] == '#') continue;
-
         parseAndExec(strdup(trim(linebuff)));
     }
 
@@ -444,7 +383,6 @@ int main(int argc, char *argv[]) {
             batchMode(argv[1]);
             break;
         default:
-            // TODO: print something for invalid command
             handleError();
             exit(1);
             break;
