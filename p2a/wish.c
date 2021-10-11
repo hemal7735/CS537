@@ -182,8 +182,10 @@ void nativeCmd(char *cmdStr) {
         // TODO: remove this
         // printf("tried path is:%s\n", tryPath);
 
+        char *cmdPath = args[0];
+
         if (i != PATHS_LEN) {
-            args[0] = strdup(tryPath);
+            cmdPath = strdup(tryPath);
         }
 
         // puts(args[0]);
@@ -205,7 +207,7 @@ void nativeCmd(char *cmdStr) {
         // puts(args[1]);
         // puts(args[2]);
         // puts(args[3]);
-        if (execv(args[0], args) == -1) {
+        if (execv(cmdPath, args) == -1) {
             // TODO: remove this
             // puts("could not exec command");
             // puts("error with execv");
