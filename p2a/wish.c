@@ -136,7 +136,7 @@ void nativeCmd(char *cmdStr) {
         if (len == 2) {
             cmdStr = indirectionArgs[0];
             close(STDOUT_FILENO);
-            if (open(indirectionArgs[1], O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU) < 0) {
+            if (open(indirectionArgs[1], O_CREAT|O_WRONLY|O_TRUNC, 0666) < 0) {
                 handleError();
                 return;
             }
