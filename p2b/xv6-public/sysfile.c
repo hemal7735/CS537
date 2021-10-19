@@ -450,14 +450,21 @@ sys_settickets(void) {
 
   if (argint(0, &tickets) < 0) return -1;
 
-  if (tickets == 0) return -1; 
+  // TODO: check for NULL
+  // if (tickets == 0) return -1; 
 
   return settickets(tickets);
 }
 
 int
 sys_getpinfo(void) {
-  return 0;
+  struct proc *p;
+
+  if (argptr(0, (void*)&p, sizeof(p)) < 0) return -1;
+  
+  if (p == 0) return -1;
+  
+  return getpinfo(p);
 }
 
 

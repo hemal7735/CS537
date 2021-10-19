@@ -540,7 +540,22 @@ int settickets(int tickets) {
     return 0;
 }
 
-int getpinfo(struct pstat *ps) {
+int getpinfo(struct pstat *procstats) {
+    struct proc *p;
+
+    acquire(&ptable.lock);
+
+    for(int i = 0; i < NPROC; i++) {
+        p = &ptable.proc[i];
+
+        procstats->inuse[i] = !(p->state == UNUSED);
+        procstats->tickets[i] = p->tickets;
+        procstats->pid[i] = p->pid;
+        procstats->ticks[i] = p->ticks;
+        
+    }
+
+    release(&ptable.lock);
     return 0;
 }
 
