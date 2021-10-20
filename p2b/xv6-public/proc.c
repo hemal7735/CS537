@@ -21,6 +21,10 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+int enableDebug() {
+    return 0;
+}
+
 void
 pinit(void)
 {
@@ -115,6 +119,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  if (enableDebug()) {
+    cprintf("Proc creation: %s - [pid: %d], [tickets: %d]\n", p->name, p->pid, p->tickets);
+  }
+
   return p;
 }
 
@@ -203,6 +211,11 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
   np->tickets = curproc->tickets;
+  
+  if (enableDebug()) {
+    cprintf("fork: %s - [pid: %d], [tickets: %d]\n", np->name, np->pid, np->tickets);
+  }
+
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -343,11 +356,16 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+      for(int i = 0; i < c->proc->tickets; i++) {
+        switchuvm(p);
+        p->state = RUNNING;
+
+        cprintf("about to run: %s [pid: %d]\n", c->proc->name, c->proc->pid);
+
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+      }
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -539,6 +557,11 @@ procdump(void)
 int settickets(int tickets) {
     struct proc *p = myproc();
     p->tickets = tickets;
+    
+    if (enableDebug()) {
+      cprintf("settickets: %s - [pid: %d], [tickets: %d]\n", p->name, p->pid, p->tickets);
+    }
+    
     return 0;
 }
 
