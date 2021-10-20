@@ -458,13 +458,13 @@ sys_settickets(void) {
 
 int
 sys_getpinfo(void) {
-  struct proc *p;
+  struct pstat *procstats;
 
-  if (argptr(0, (void*)&p, sizeof(p)) < 0) return -1;
+  if (argptr(0, (void*)&procstats, sizeof(procstats)) < 0) return -1;
   
-  if (p == 0) return -1;
+  if (procstats == 0) return -1;
   
-  return getpinfo(p);
+  return getpinfo(procstats);
 }
 
 
