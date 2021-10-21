@@ -2,43 +2,47 @@
 #include "stat.h"
 #include "user.h"
 #include "fs.h"
+#include "pstat.h"
+#include "param.h"
 
 int
 main(int argc, char *argv[])
 {
-    // if (argc != 2) exit();
+    if (argc != 3) exit();
 
-    // int tickets = atoi(argv[1]);
-    // int loopCounter = atoi(argv[2]);
+    int tickets_child = atoi(argv[1]);
+    int tickets_parent = atoi(argv[2]);
 
     int rc = fork();
 
     if (rc < 0) {
-        // somtehitn wrong
+        // something wrong
+        exit();
     } else if (rc == 0) {
         // child
-        settickets(2);
+        settickets(tickets_child);
     } else {
         // parent
-        settickets(4);
+        settickets(tickets_parent);
     }
     
     int count = 0;
 
     for(int i = 0; i < 100000000; i++) {
         count += i;
-        // printf(1, "val - [i-%d]\n", i); 
     }
 
-
-    // while(1) {
-
-    // }
-
-    printf(1, "spin - [count-%d]\n", count);
-    
     if (rc != 0) {
+        // wait for child to exit
         wait();
+
+        struct pstat *procstats = (struct pstat *)malloc(sizeof(struct pstat));
+        
+        getpinfo(procstats);
+
+        for(int i = 0; i < NPROC; i++) {
+            // printf(1, "[in-use:%d] [tickets:%d] [pid:%d] [ticks:%d]\n", procstats->inuse[i], procstats->tickets[i], procstats->pid[i], procstats->ticks[i]);
+        } 
     }
 
     exit();

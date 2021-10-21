@@ -450,8 +450,7 @@ sys_settickets(void) {
 
   if (argint(0, &tickets) < 0) return -1;
 
-  // TODO: check for NULL
-  // if (tickets == 0) return -1; 
+  if (tickets == 0) return -1; 
 
   return settickets(tickets);
 }

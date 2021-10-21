@@ -22,7 +22,11 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 int enableDebug() {
-    return 1;
+    return 0;
+}
+
+int enableDebug2() {
+    return 0;
 }
 
 void
@@ -364,8 +368,11 @@ scheduler(void)
         
         switchuvm(p);
         p->state = RUNNING;
+        p->ticks++;
 
-        cprintf("about to run: %s [pid: %d] [tickets: %d]\n", c->proc->name, c->proc->pid, c->proc->tickets);
+        if (enableDebug()) {
+          cprintf("about to run: %s [pid: %d] [tickets: %d]\n", c->proc->name, c->proc->pid, c->proc->tickets);
+        }
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
@@ -559,10 +566,12 @@ procdump(void)
 }
 
 int settickets(int tickets) {
+    if (tickets < 0) return -1;
+    
     struct proc *p = myproc();
     p->tickets = tickets;
     
-    if (enableDebug()) {
+    if (enableDebug2()) {
       cprintf("settickets: %s - [pid: %d], [tickets: %d]\n", p->name, p->pid, p->tickets);
     }
     
@@ -577,7 +586,12 @@ int getpinfo(struct pstat *procstats) {
     for(int i = 0; i < NPROC; i++) {
         p = &ptable.proc[i];
 
-        procstats->inuse[i] = !(p->state == UNUSED);
+        if (p->state == UNUSED) {
+            procstats->inuse[i] = 0;
+        } else {
+            procstats->inuse[i] = 1;
+        }
+        
         procstats->tickets[i] = p->tickets;
         procstats->pid[i] = p->pid;
         procstats->ticks[i] = p->ticks;
