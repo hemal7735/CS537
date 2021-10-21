@@ -22,7 +22,7 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 int enableDebug() {
-    return 0;
+    return 1;
 }
 
 void
@@ -357,11 +357,15 @@ scheduler(void)
       // before jumping back to us.
       c->proc = p;
 
-      for(int i = 0; i < c->proc->tickets; i++) {
+      for(int i = 0; i < p->tickets; i++) {
+        if(p->state != RUNNABLE) {
+          break;
+        }
+        
         switchuvm(p);
         p->state = RUNNING;
 
-        cprintf("about to run: %s [pid: %d]\n", c->proc->name, c->proc->pid);
+        cprintf("about to run: %s [pid: %d] [tickets: %d]\n", c->proc->name, c->proc->pid, c->proc->tickets);
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
