@@ -369,7 +369,7 @@ scheduler(void)
         switchuvm(p);
         p->state = RUNNING;
         p->ticks++;
-
+        
         if (enableDebug()) {
           cprintf("about to run: %s [pid: %d] [tickets: %d]\n", c->proc->name, c->proc->pid, c->proc->tickets);
         }
