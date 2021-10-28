@@ -49,3 +49,25 @@ will need to install a cross-compiler gcc suite capable of producing
 x86 ELF binaries (see https://pdos.csail.mit.edu/6.828/).
 Then run "make TOOLPREFIX=i386-jos-elf-". Now install the QEMU PC
 simulator and run "make qemu".
+
+### Features
+
+1. Null Pointer Dereference:
+ - xv6 kernel cannot identify null pointer, and considers it a valid address(0th), unlike Linux, where it is considered invalid.
+ - Since memory is loaded at 0th in kernel, we need to make changes so that it starts after 1 page = 4096 in this case.
+
+ #### Changes:
+ 1. `proc.c` where page table is loaded.
+ 2. `vm.c` where page table is copied from parent to child.
+ 3. `syscall.c` where pointers are accessed.
+ 4. `Makefile` where `main` file is loaded.
+
+
+2. Ticker Scheduler
+- By default xv6 provides round-robin scheduler. We need to change it to ticket based scheduler, so that process will run N time slices before giving up the CPU. N is called ticket.
+
+ #### Changes:
+ 1. System calls `settickets` and `getpinfo` to set tickets of a process and get stats similar to `ps` command.
+ 2. `pstat.h` for `getpinfo` 
+ 3. Change in the `scheduler()` in `proc.c`.
+
