@@ -8,7 +8,7 @@
 #include <sys/sysinfo.h>
 #include <sys/mman.h>
 
-#define Q_SIZE 3
+#define Q_SIZE 1000
 
 int total_files;
 
@@ -151,26 +151,56 @@ void readFiles(char **filenames) {
         // TODO: what happens if the file cannot be fit inside the memory?
         char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fildes, 0);
         
-        for(int page = 1; page <= total_pages; page++) {
+        for(int page = 0; page < total_pages; page++) {
             
             printf("START: [page:%d]\n", page);
 
-            int limit = PAGE_SIZE;
+            int actual_size = PAGE_SIZE;
 
+            // last page might not be fully filled
             if (page == total_pages - 1) {
-                limit = sb.st_size % PAGE_SIZE;
+                actual_size = sb.st_size % PAGE_SIZE;
             }
 
-            for(int i = 0; i < limit; i++) {
-                printf("%c", ptr[i]);
-            }
+            // input_chunk_t input_chunk;
 
-            ptr += limit;
+            // input_chunk.buf = ptr;
+            // input_chunk.file_id = fid;
+            // input_chunk.page_id = page;
+            // input_chunk.size = actual_size;
+
+            // enqueue(chunk);
+
+            // TODO: START remove from here
+            output_chunk_t output_chunk;
+
+            output_chunk.buf = ptr;
+            output_chunk.size = actual_size;
+
+            output_chunks[fid][page] = output_chunk;
+
+            // TODO: END:
+
+            ptr += actual_size;
 
             printf("\nEND: [page:%d]\n", page);
         }
     }
 
+}
+
+void dump() {
+    for(int fid = 0; fid < total_files; fid++) {
+        int pages = pages_count[fid];
+
+        for(int page = 0; page < pages; page++) {
+            output_chunk_t chunk = output_chunks[fid][page];
+            
+            for(int i = 0; i < chunk.size; i++) {
+                printf("%c", chunk.buf[i]);
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -188,6 +218,8 @@ int main(int argc, char *argv[]) {
     // for(int i = 0; i < total_files; i++) {
     //     printf("[page_id:%d] [pages:%d]\n", i, pages_count[i]);
     // }
+
+    dump();
     
     return 0;
 }
