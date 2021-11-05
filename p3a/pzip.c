@@ -20,7 +20,8 @@ typedef struct _input_chunk {
 } input_chunk_t;
 
 typedef struct _output_chunk {
-    char *buf;
+    char *chars;
+    int *runs;
     int size;
 } output_chunk_t;
 
@@ -68,55 +69,34 @@ input_chunk_t dequeue() {
     return chunk;
 }
 
-void readFile2(char *filename) {
-    int fildes = open(filename, O_RDONLY);
+void computeRLE(input_chunk_t input) {
+    output_chunk_t output;
+    // 1-1 mapping between character and counts
+	char *chars = malloc(input.size * sizeof(char));
+    int *runs = malloc(input.size * sizeof(int));
 
-    if (fildes == -1) {
-        printf("error getting fstats\n");
-        close(fildes);
-        exit(1);
-    }
+    int idx = 0;
 
-    struct stat sb;
+    for(int i = 0; i < input.size; i++, idx++) {
+        char c = input.buf[i];
+        int run = 0;
 
-    if (fstat(fildes, &sb) == -1) {
-        printf("error getting fstats\n");
-        close(fildes);
-        exit(1);
-    }
-
-    int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
-
-    int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
-
-    printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
-
-    // TODO: what happens if the file cannot be fit inside the memory?
-    
-    int offset = 0;
-    
-    for(int page = 1; page <= total_pages; page++) {
-        
-        printf("START: [page:%d]\n", page);
-
-        int limit = PAGE_SIZE;
-
-        if (page == total_pages - 1) {
-            limit = sb.st_size % PAGE_SIZE;
+        while(i < input.size && input.buf[i] == c) {
+            i++;
+            run++;
         }
 
-        char *ptr = mmap(NULL, limit, PROT_READ, MAP_PRIVATE, fildes, offset);
+        chars[idx] = c;
+        runs[idx] = run;
+    }   
 
-        for(int i = 0; i < limit; i++) {
-            printf("%c", ptr[i]);
-        }
-        
-        offset += PAGE_SIZE;
+    // collect info and re-align
+    output.size = idx;
+    output.chars = realloc(chars, output.size);
+    output.runs = realloc(runs, output.size);
 
-        printf("\nEND: [page:%d]\n", page);
-    }
+    output_chunks[input.file_id][input.page_id] = output;
 }
-
 
 void readFiles(char **filenames) {
 
@@ -124,7 +104,7 @@ void readFiles(char **filenames) {
     
     for(int fid = 0; fid < total_files; fid++) {
         char *filename = filenames[fid];
-        int fildes = open(filenames[0], O_RDONLY);
+        int fildes = open(filename, O_RDONLY);
 
         if (fildes == -1) {
             printf("error getting fstats\n");
@@ -146,15 +126,13 @@ void readFiles(char **filenames) {
         output_chunks[fid] = (output_chunk_t*)malloc(total_pages * sizeof(output_chunk_t));
         pages_count[fid] = total_pages;
 
-        printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
+        // printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
 
         // TODO: what happens if the file cannot be fit inside the memory?
         char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fildes, 0);
         
         for(int page = 0; page < total_pages; page++) {
             
-            printf("START: [page:%d]\n", page);
-
             int actual_size = PAGE_SIZE;
 
             // last page might not be fully filled
@@ -162,28 +140,20 @@ void readFiles(char **filenames) {
                 actual_size = sb.st_size % PAGE_SIZE;
             }
 
-            // input_chunk_t input_chunk;
+            input_chunk_t input_chunk;
 
-            // input_chunk.buf = ptr;
-            // input_chunk.file_id = fid;
-            // input_chunk.page_id = page;
-            // input_chunk.size = actual_size;
+            input_chunk.buf = ptr;
+            input_chunk.file_id = fid;
+            input_chunk.page_id = page;
+            input_chunk.size = actual_size;
 
-            // enqueue(chunk);
+            // for(int l = 0; l < input_chunk.size; l++) {
+            //     printf("%c", input_chunk.buf[l]);
+            // }
 
-            // TODO: START remove from here
-            output_chunk_t output_chunk;
-
-            output_chunk.buf = ptr;
-            output_chunk.size = actual_size;
-
-            output_chunks[fid][page] = output_chunk;
-
-            // TODO: END:
+            computeRLE(input_chunk);
 
             ptr += actual_size;
-
-            printf("\nEND: [page:%d]\n", page);
         }
     }
 
@@ -197,7 +167,8 @@ void dump() {
             output_chunk_t chunk = output_chunks[fid][page];
             
             for(int i = 0; i < chunk.size; i++) {
-                printf("%c", chunk.buf[i]);
+                printf("%d", chunk.runs[i]);
+                printf("%c", chunk.chars[i]);
             }
         }
     }
