@@ -24,8 +24,9 @@ typedef struct _output_chunk {
     int size;
 } output_chunk;
 
-input_chunk **in_queue;
-output_chunk **out_queue;
+input_chunk input_chunks[Q_SIZE];
+output_chunk **output_chunks;
+int *pages_count;
 
 int q_size = 0;
 int q_head = 0, q_tail = 0;
@@ -122,6 +123,8 @@ void readFile2(char *filename) {
 
 void readFiles(char **filenames) {
 
+    int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
+    
     for(int fid = 0; fid < total_files; fid++) {
         char *filename = filenames[fid];
         int fildes = open(filenames[0], O_RDONLY);
@@ -140,9 +143,11 @@ void readFiles(char **filenames) {
             exit(1);
         }
 
-        int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
-
         int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
+
+        // init chunks array for output based on the number of pages
+        output_chunks[fid] = (output_chunk*)malloc(total_pages * sizeof(output_chunk));
+        pages_count[fid] = total_pages;
 
         printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
 
@@ -178,9 +183,14 @@ int main(int argc, char *argv[]) {
     }
 
     total_files = argc - 1;
-    // in_queue = (input_chunk**)malloc(total_input_files * sizeof(input_chunk*));
+    pages_count = (int*)malloc(total_files * sizeof(int));
+    output_chunks = (output_chunk**)malloc(total_files * sizeof(output_chunk*));
 
     readFiles(argv + 1);
+
+    for(int i = 0; i < total_files; i++) {
+        printf("[page_id:%d] [pages:%d]\n", i, pages_count[i]);
+    }
     
     return 0;
 }
