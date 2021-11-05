@@ -17,15 +17,15 @@ typedef struct _input_chunk {
     int size;
     int file_id;
     int page_id;
-} input_chunk;
+} input_chunk_t;
 
 typedef struct _output_chunk {
     char *buf;
     int size;
-} output_chunk;
+} output_chunk_t;
 
-input_chunk input_chunks[Q_SIZE];
-output_chunk **output_chunks;
+input_chunk_t input_chunks[Q_SIZE];
+output_chunk_t **output_chunks;
 int *pages_count;
 
 int q_size = 0;
@@ -50,25 +50,22 @@ int isQueueEmpty() {
     return 0;
 }
 
-// 0 - failure
-// 1 - success
-int enqueue(int val) {
-    if (isQueueFull()) return -1;
+int enqueue(input_chunk_t chunk) {
+    // if (isQueueFull()) return -1;
 
-    queue[q_head] = val;
+    input_chunks[q_head] = chunk;
     q_head = (q_head + 1) % Q_SIZE;
 
     return 1;
 }
 
-// -1 - failure
-int dequeue() {
-    if (isQueueEmpty()) return -1;
+input_chunk_t dequeue() {
+    // if (isQueueEmpty()) return NULL;
 
-    int val = queue[q_tail];
+    input_chunk_t chunk = input_chunks[q_tail];
     q_tail = (q_tail + 1)%Q_SIZE;
 
-    return val;
+    return chunk;
 }
 
 void readFile2(char *filename) {
@@ -146,7 +143,7 @@ void readFiles(char **filenames) {
         int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
 
         // init chunks array for output based on the number of pages
-        output_chunks[fid] = (output_chunk*)malloc(total_pages * sizeof(output_chunk));
+        output_chunks[fid] = (output_chunk_t*)malloc(total_pages * sizeof(output_chunk_t));
         pages_count[fid] = total_pages;
 
         printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
@@ -184,13 +181,13 @@ int main(int argc, char *argv[]) {
 
     total_files = argc - 1;
     pages_count = (int*)malloc(total_files * sizeof(int));
-    output_chunks = (output_chunk**)malloc(total_files * sizeof(output_chunk*));
+    output_chunks = (output_chunk_t**)malloc(total_files * sizeof(output_chunk_t*));
 
     readFiles(argv + 1);
 
-    for(int i = 0; i < total_files; i++) {
-        printf("[page_id:%d] [pages:%d]\n", i, pages_count[i]);
-    }
+    // for(int i = 0; i < total_files; i++) {
+    //     printf("[page_id:%d] [pages:%d]\n", i, pages_count[i]);
+    // }
     
     return 0;
 }
