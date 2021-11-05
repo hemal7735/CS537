@@ -10,10 +10,26 @@
 
 #define Q_SIZE 3
 
-int queue[Q_SIZE];
+int total_files;
+
+typedef struct _input_chunk {
+    char *buf;
+    int size;
+    int file_id;
+    int page_id;
+} input_chunk;
+
+typedef struct _output_chunk {
+    char *buf;
+    int size;
+} output_chunk;
+
+input_chunk **in_queue;
+output_chunk **out_queue;
+
 int q_size = 0;
 int q_head = 0, q_tail = 0;
-
+int queue[Q_SIZE];
 
 // 0 - not full
 // 1 - full
@@ -104,50 +120,55 @@ void readFile2(char *filename) {
 }
 
 
-void readFile1(char *filename) {
-    int fildes = open(filename, O_RDONLY);
+void readFiles(char **filenames) {
 
-    if (fildes == -1) {
-        printf("error getting fstats\n");
-        close(fildes);
-        exit(1);
-    }
+    for(int fid = 0; fid < total_files; fid++) {
+        char *filename = filenames[fid];
+        int fildes = open(filenames[0], O_RDONLY);
 
-    struct stat sb;
+        if (fildes == -1) {
+            printf("error getting fstats\n");
+            close(fildes);
+            exit(1);
+        }
 
-    if (fstat(fildes, &sb) == -1) {
-        printf("error getting fstats\n");
-        close(fildes);
-        exit(1);
-    }
+        struct stat sb;
 
-    int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
+        if (fstat(fildes, &sb) == -1) {
+            printf("error getting fstats\n");
+            close(fildes);
+            exit(1);
+        }
 
-    int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
+        int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
 
-    printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
+        int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
 
-    // TODO: what happens if the file cannot be fit inside the memory?
-    char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fildes, 0);
-    
-    for(int page = 1; page <= total_pages; page++) {
+        printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
+
+        // TODO: what happens if the file cannot be fit inside the memory?
+        char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fildes, 0);
         
-        printf("START: [page:%d]\n", page);
+        for(int page = 1; page <= total_pages; page++) {
+            
+            printf("START: [page:%d]\n", page);
 
-        int limit = PAGE_SIZE;
+            int limit = PAGE_SIZE;
 
-        if (page == total_pages - 1) {
-            limit = sb.st_size % PAGE_SIZE;
+            if (page == total_pages - 1) {
+                limit = sb.st_size % PAGE_SIZE;
+            }
+
+            for(int i = 0; i < limit; i++) {
+                printf("%c", ptr[i]);
+            }
+
+            ptr += limit;
+
+            printf("\nEND: [page:%d]\n", page);
         }
-
-        for(int i = 0; i < limit; i++) {
-            printf("%c", ptr[i]);
-        }
-
-        ptr += limit;
-
-        printf("\nEND: [page:%d]\n", page);
     }
+
 }
 
 int main(int argc, char *argv[]) {
@@ -156,17 +177,10 @@ int main(int argc, char *argv[]) {
 		exit(1);
     }
 
-    // readFile1(argv[1]);
+    total_files = argc - 1;
+    // in_queue = (input_chunk**)malloc(total_input_files * sizeof(input_chunk*));
 
-    enqueue(1);
-    enqueue(2);
-
-    printf("is full:%d\n", isQueueFull());
-
-    printf("%d\n", dequeue());
-    printf("%d\n", dequeue());
-
-    printf("is empty:%d\n", isQueueEmpty());
+    readFiles(argv + 1);
     
     return 0;
 }
