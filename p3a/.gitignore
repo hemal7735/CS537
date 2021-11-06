@@ -1,0 +1,7 @@
+pzip
+*.txt
+pc*
+tests
+tests-out
+*tar.*
+test-pzip.sh

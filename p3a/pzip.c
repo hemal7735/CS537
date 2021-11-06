@@ -74,11 +74,25 @@ void computeRLE(input_chunk_t input) {
     // 1-1 mapping between character and counts
 	char *chars = malloc(input.size * sizeof(char));
     int *runs = malloc(input.size * sizeof(int));
-
     int idx = 0;
 
-    for(int i = 0; i < input.size; i++, idx++) {
+    // TODO: remove this
+    // for(int l = 0; l < input.size; l++) {
+    //     if (input.buf[l] == '\n') {
+    //         printf("bingo in RLE first\n");
+    //     }
+    // }
+    int i = 0;
+
+    while(i < input.size) {
+        // puts("for loop");
+
+        if (input.buf[i] == '\n') {
+            // printf("bingo in RLE second\n");
+        }
+
         char c = input.buf[i];
+
         int run = 0;
 
         while(i < input.size && input.buf[i] == c) {
@@ -86,14 +100,20 @@ void computeRLE(input_chunk_t input) {
             run++;
         }
 
+        // printf("[char-%c] [run-%d]\n", c, run);
+
         chars[idx] = c;
         runs[idx] = run;
+        idx++;
     }   
 
     // collect info and re-align
     output.size = idx;
-    output.chars = realloc(chars, output.size);
-    output.runs = realloc(runs, output.size);
+    // output.chars = realloc(chars, output.size);
+    // output.runs = realloc(runs, output.size);
+
+    output.chars = chars;
+    output.runs = runs;
 
     output_chunks[input.file_id][input.page_id] = output;
 }
@@ -129,7 +149,7 @@ void readFiles(char **filenames) {
         // printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
 
         // TODO: what happens if the file cannot be fit inside the memory?
-        char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fildes, 0);
+        char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fildes, 0);
         
         for(int page = 0; page < total_pages; page++) {
             
@@ -148,7 +168,9 @@ void readFiles(char **filenames) {
             input_chunk.size = actual_size;
 
             // for(int l = 0; l < input_chunk.size; l++) {
-            //     printf("%c", input_chunk.buf[l]);
+            //     if (ptr[l] == '\n') {
+            //         puts("bingo");
+            //     }
             // }
 
             computeRLE(input_chunk);
@@ -160,16 +182,29 @@ void readFiles(char **filenames) {
 }
 
 void dump() {
+    int useFwrite = 1;
+    
     for(int fid = 0; fid < total_files; fid++) {
         int pages = pages_count[fid];
 
         for(int page = 0; page < pages; page++) {
-            output_chunk_t chunk = output_chunks[fid][page];
+            output_chunk_t output = output_chunks[fid][page];
             
-            for(int i = 0; i < chunk.size; i++) {
-                printf("%d", chunk.runs[i]);
-                printf("%c", chunk.chars[i]);
+            int i;
+
+            for(i = 0; i < output.size; i++) {
+                int run = output.runs[i];
+                char c = output.chars[i];
+
+                if (useFwrite) {
+                    fwrite(&run, sizeof(run), 1, stdout);
+                    fwrite(&c, sizeof(c), 1, stdout);
+                } else {
+                    printf("%d%c", run, c);
+                }
             }
+
+            // printf("total chars:%d\n", i);
         }
     }
 }
@@ -185,11 +220,6 @@ int main(int argc, char *argv[]) {
     output_chunks = (output_chunk_t**)malloc(total_files * sizeof(output_chunk_t*));
 
     readFiles(argv + 1);
-
-    // for(int i = 0; i < total_files; i++) {
-    //     printf("[page_id:%d] [pages:%d]\n", i, pages_count[i]);
-    // }
-
     dump();
     
     return 0;
