@@ -28,6 +28,7 @@ typedef struct _output_chunk {
 input_chunk_t input_chunks[Q_SIZE];
 output_chunk_t **output_chunks;
 int *pages_count;
+int total_pages = 0;
 
 int q_size = 0;
 int q_head = 0, q_tail = 0;
@@ -109,11 +110,8 @@ void computeRLE(input_chunk_t input) {
 
     // collect info and re-align
     output.size = idx;
-    // output.chars = realloc(chars, output.size);
-    // output.runs = realloc(runs, output.size);
-
-    output.chars = chars;
-    output.runs = runs;
+    output.chars = realloc(chars, output.size);
+    output.runs = realloc(runs, output.size);
 
     output_chunks[input.file_id][input.page_id] = output;
 }
@@ -140,18 +138,19 @@ void readFiles(char **filenames) {
             exit(1);
         }
 
-        int total_pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
+        int pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
+        total_pages += pages;
 
         // init chunks array for output based on the number of pages
-        output_chunks[fid] = (output_chunk_t*)malloc(total_pages * sizeof(output_chunk_t));
-        pages_count[fid] = total_pages;
+        output_chunks[fid] = (output_chunk_t*)malloc(pages * sizeof(output_chunk_t));
+        pages_count[fid] = pages;
 
         // printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
 
         // TODO: what happens if the file cannot be fit inside the memory?
         char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fildes, 0);
         
-        for(int page = 0; page < total_pages; page++) {
+        for(int page = 0; page < pages; page++) {
             
             int actual_size = PAGE_SIZE;
 
@@ -184,6 +183,8 @@ void readFiles(char **filenames) {
 void dump() {
     int useFwrite = 1;
     
+    // TODO: BUG - merge to previous
+
     for(int fid = 0; fid < total_files; fid++) {
         int pages = pages_count[fid];
 
