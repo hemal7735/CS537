@@ -8,12 +8,12 @@
 #include <sys/sysinfo.h>
 #include <sys/mman.h>
 
-#define Q_SIZE 1000
+#define Q_SIZE 100000
+
+pthread_mutex_t mp = PTHREAD_MUTEX_INITIALIZER;
 
 // switch between printf and fwrite
 int useFwrite = 1;
-
-int total_files;
 
 typedef struct _input_chunk {
     char *buf;
@@ -28,14 +28,14 @@ typedef struct _output_chunk {
     int size;
 } output_chunk_t;
 
+int total_files;
+
 input_chunk_t input_chunks[Q_SIZE];
 output_chunk_t **output_chunks;
 int *pages_count;
 int total_pages = 0;
 
-int q_size = 0;
 int q_head = 0, q_tail = 0;
-int queue[Q_SIZE];
 
 // 0 - not full
 // 1 - full
@@ -127,15 +127,31 @@ void computeRLE(input_chunk_t input) {
 
     // printf("[file:%d] [page:%d] [chunk_size:%d]\n", input.file_id, input.page_id, output.size);
 
-    if (input.page_id <= 4000) {
-        // printf("writing for page:%d\n", input.page_id);
-        // print_chunk(output);
-    }
     output_chunks[input.file_id][input.page_id] = output;
 }
 
-void read_files(char **filenames) {
+void* RLE_processor() {
 
+    while(1) {
+        pthread_mutex_lock(&mp);
+        
+        if (isQueueEmpty()) {
+            // release lock if you are breaking early
+            pthread_mutex_unlock(&mp);
+            break;
+        }
+
+        input_chunk_t chunk = dequeue();
+        pthread_mutex_unlock(&mp);
+
+        computeRLE(chunk);
+    }
+
+    return 0;
+}
+
+void* RLE_reader(void *input) {
+    char **filenames = (char **)input;
     int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
     
     for(int fid = 0; fid < total_files; fid++) {
@@ -184,39 +200,18 @@ void read_files(char **filenames) {
 
             // printf("[filename:%s] [actual_size:%d]\n", filename, actual_size);
 
-            computeRLE(input_chunk);
+            enqueue(input_chunk);
 
             ptr += actual_size;
         }
 
         close(fildes);
     }
+
+    return 0;
 }
 
-void gen_out() {
-    
-    // output_chunk_t curr_chunk;
-
-    // for(int i = 0; i < 1; i++) {
-    //     curr_chunk = *(output_chunks + i);
-
-    //     printf("[writing for page:%d]\n", i);
-
-    //     shift to the next chunk
-    //     if (i < total_pages - 1) {
-    //         output_chunk_t next_chunk = *output_chunks[i + 1];
-
-    //         int next_chunk_first_char = next_chunk.chars[0];
-    //         int curr_chunk_last_char = curr_chunk.chars[curr_chunk.size - 1];
-
-    //         if (curr_chunk_last_char == next_chunk_first_char) {
-    //             next_chunk.runs[0] += curr_chunk.runs[curr_chunk.size - 1];
-    //             curr_chunk.size--;
-    //         }
-    //     }
-
-    //     print_chunk(curr_chunk);
-    // }
+void RLE_writer() {
 
     int last_file_id = total_files - 1;
 
@@ -259,8 +254,25 @@ int main(int argc, char *argv[]) {
     pages_count = (int*)malloc(total_files * sizeof(int));
     output_chunks = (output_chunk_t**)calloc(total_files, sizeof(output_chunk_t*));
 
-    read_files(argv + 1);
-    gen_out();
+    int processors_count = get_nprocs();
+    pthread_t reader;
+    pthread_t processors[processors_count];
+
+     // first let's wait for reader to finish
+    pthread_create(&reader, NULL, RLE_reader, argv + 1);
+   
+    pthread_join(reader, NULL);
+
+    // then let's wait for processors to finish
+    for(int i = 0; i < processors_count; i++) {
+        pthread_create(&processors[i], NULL, RLE_processor, NULL);
+    }
+
+    for(int i = 0; i < processors_count; i++) {
+        pthread_join(processors[i], NULL);
+    }
+
+    RLE_writer();
     
     return 0;
 }
