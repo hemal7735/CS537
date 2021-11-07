@@ -96,13 +96,23 @@ void computeRLE(input_chunk_t input) {
 
     while(i < input.size) {
         char c = input.buf[i];
+
+        if (c == '\0') {
+            i++;
+            continue;
+        }
+
         int run = 0;
 
-        // printf("%c\n", c);
-
-        while(i < input.size && input.buf[i] == c) {
-            i++;
-            run++;
+        while(i < input.size) {
+            if (input.buf[i] == c) {
+                i++;
+                run++;
+            } else if (input.buf[i] == '\0') {
+                i++;
+            } else {
+                break;
+            }
         }
 
         chars[idx] = c;
