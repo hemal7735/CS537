@@ -10,7 +10,9 @@
 
 #define Q_SIZE 100000
 
-pthread_mutex_t mp = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_q_empty = PTHREAD_COND_INITIALIZER, cond_q_fill = PTHREAD_COND_INITIALIZER;
+int reader_done = 0;
 
 // switch between printf and fwrite
 int useFwrite = 1;
@@ -61,6 +63,8 @@ int enqueue(input_chunk_t chunk) {
     input_chunks[q_head] = chunk;
     q_head = (q_head + 1) % Q_SIZE;
 
+    // printf("enqueue [file:%d] [page:%d]\n", chunk.file_id, chunk.page_id);
+
     return 1;
 }
 
@@ -70,6 +74,7 @@ input_chunk_t dequeue() {
     input_chunk_t chunk = input_chunks[q_tail];
     q_tail = (q_tail + 1)%Q_SIZE;
 
+    // printf("dequeue [file:%d] [page:%d]\n", chunk.file_id, chunk.page_id);
     return chunk;
 }
 
@@ -133,16 +138,28 @@ void computeRLE(input_chunk_t input) {
 void* RLE_processor() {
 
     while(1) {
-        pthread_mutex_lock(&mp);
+        pthread_mutex_lock(&q_lock);
         
-        if (isQueueEmpty()) {
-            // release lock if you are breaking early
-            pthread_mutex_unlock(&mp);
+        // wait for reader
+        while(isQueueEmpty() && !reader_done) {
+            pthread_cond_signal(&cond_q_empty);
+            pthread_cond_wait(&cond_q_fill, &q_lock);
+        }
+
+        // upon state variable change figure out what happened?
+        if (isQueueEmpty() && reader_done) {
+            pthread_mutex_unlock(&q_lock);
             break;
         }
 
         input_chunk_t chunk = dequeue();
-        pthread_mutex_unlock(&mp);
+
+        // no need for lock anymore
+        pthread_mutex_unlock(&q_lock);
+
+        if(!reader_done){
+		    pthread_cond_signal(&cond_q_empty);
+		}
 
         computeRLE(chunk);
     }
@@ -154,11 +171,12 @@ void* RLE_reader(void *input) {
     char **filenames = (char **)input;
     int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
     
-    for(int fid = 0; fid < total_files; fid++) {
+    for(int fid = 0; fid < total_files;) {
         char *filename = filenames[fid];
         int fildes = open(filename, O_RDONLY);
 
         if (fildes == -1) {
+            total_files--;
             close(fildes);
             continue;
         }
@@ -166,6 +184,7 @@ void* RLE_reader(void *input) {
         struct stat sb;
 
         if (fstat(fildes, &sb) == -1) {
+            total_files--;
             close(fildes);
             continue;
         }
@@ -183,7 +202,6 @@ void* RLE_reader(void *input) {
         char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fildes, 0);
         
         for(int page_id = 0; page_id < pages; page_id++) {
-            
             int actual_size = PAGE_SIZE;
 
             // last page might not be fully filled
@@ -198,16 +216,29 @@ void* RLE_reader(void *input) {
             input_chunk.page_id = page_id;
             input_chunk.size = actual_size;
 
+            ptr += actual_size;
+
             // printf("[filename:%s] [actual_size:%d]\n", filename, actual_size);
+
+            pthread_mutex_lock(&q_lock);
+
+            while(isQueueFull()) {
+                pthread_cond_broadcast(&cond_q_fill);
+                pthread_cond_wait(&cond_q_empty, &q_lock);
+            }
 
             enqueue(input_chunk);
 
-            ptr += actual_size;
+            pthread_mutex_unlock(&q_lock);
+			pthread_cond_signal(&cond_q_fill);
         }
 
         close(fildes);
+        fid++;
     }
 
+    reader_done = 1;
+    pthread_cond_broadcast(&cond_q_fill);
     return 0;
 }
 
@@ -258,16 +289,12 @@ int main(int argc, char *argv[]) {
     pthread_t reader;
     pthread_t processors[processors_count];
 
-     // first let's wait for reader to finish
     pthread_create(&reader, NULL, RLE_reader, argv + 1);
-   
-    pthread_join(reader, NULL);
-
-    // then let's wait for processors to finish
     for(int i = 0; i < processors_count; i++) {
         pthread_create(&processors[i], NULL, RLE_processor, NULL);
     }
 
+    pthread_join(reader, NULL);
     for(int i = 0; i < processors_count; i++) {
         pthread_join(processors[i], NULL);
     }
