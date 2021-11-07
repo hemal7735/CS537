@@ -19,7 +19,8 @@
 
 
 #define Q_SIZE 100000
-int PAGE_SIZE = 4096 * 1000; // large value gives better performance for some reason?
+// large value gives better performance because then you spend more time compressing
+int PAGE_SIZE = 4096 * 1000; 
 
 // variables for concurrency
 pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
