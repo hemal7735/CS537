@@ -8,12 +8,26 @@
 #include <sys/sysinfo.h>
 #include <sys/mman.h>
 
+
+/**
+ * I'm using the batch framework concept for parallizing.
+ * Reader: Reader reads items in bunch and puts into some queue
+ * Processor: Processor picks items from the queue and process it
+ * Writer: Writer works synchronously, and takes items emitted by the processor
+ * 
+ **/
+
+
 #define Q_SIZE 100000
 int PAGE_SIZE = 4096 * 1000; // large value gives better performance for some reason?
 
+// variables for concurrency
 pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_q_empty = PTHREAD_COND_INITIALIZER, cond_q_fill = PTHREAD_COND_INITIALIZER;
+
 int reader_done = 0;
+int total_files, total_pages = 0;
+int *pages_count;
 
 // switch between printf and fwrite
 int useFwrite = 1;
@@ -31,12 +45,8 @@ typedef struct _output_chunk {
     int size;
 } output_chunk_t;
 
-int total_files;
-
 input_chunk_t input_chunks[Q_SIZE];
 output_chunk_t **output_chunks;
-int *pages_count;
-int total_pages = 0;
 
 int q_head = 0, q_tail = 0;
 
@@ -53,6 +63,7 @@ int isQueueEmpty() {
     }
     return 0;
 }
+
 void enqueue(input_chunk_t chunk) {
     input_chunks[q_head] = chunk;
     q_head = (q_head + 1) % Q_SIZE;
@@ -123,37 +134,6 @@ void computeRLE(input_chunk_t input) {
     output_chunks[input.file_id][input.page_id] = output;
 }
 
-void* RLE_processor() {
-
-    while(1) {
-        pthread_mutex_lock(&q_lock);
-        
-        // wait for reader
-        while(isQueueEmpty() && !reader_done) {
-            pthread_cond_signal(&cond_q_empty);
-            pthread_cond_wait(&cond_q_fill, &q_lock);
-        }
-
-        // upon state variable change figure out what happened?
-        if (isQueueEmpty() && reader_done) {
-            pthread_mutex_unlock(&q_lock);
-            break;
-        }
-
-        input_chunk_t chunk = dequeue();
-
-        // no need for lock anymore
-        pthread_mutex_unlock(&q_lock);
-
-        if(!reader_done){
-		    pthread_cond_signal(&cond_q_empty);
-		}
-
-        computeRLE(chunk);
-    }
-
-    return 0;
-}
 
 void* RLE_reader(void *input) {
     char **filenames = (char **)input;
@@ -230,6 +210,38 @@ void* RLE_reader(void *input) {
 
     reader_done = 1;
     pthread_cond_broadcast(&cond_q_fill);
+    return 0;
+}
+
+void* RLE_processor() {
+
+    while(1) {
+        pthread_mutex_lock(&q_lock);
+        
+        // wait for reader
+        while(isQueueEmpty() && !reader_done) {
+            pthread_cond_signal(&cond_q_empty);
+            pthread_cond_wait(&cond_q_fill, &q_lock);
+        }
+
+        // upon state variable change figure out what happened?
+        if (isQueueEmpty() && reader_done) {
+            pthread_mutex_unlock(&q_lock);
+            break;
+        }
+
+        input_chunk_t chunk = dequeue();
+
+        // no need for lock anymore
+        pthread_mutex_unlock(&q_lock);
+
+        if(!reader_done){
+		    pthread_cond_signal(&cond_q_empty);
+		}
+
+        computeRLE(chunk);
+    }
+
     return 0;
 }
 
