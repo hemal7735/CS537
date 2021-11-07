@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 
 #define Q_SIZE 100000
+int PAGE_SIZE = 4096 * 1000; // large value gives better performance for some reason?
 
 pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_q_empty = PTHREAD_COND_INITIALIZER, cond_q_fill = PTHREAD_COND_INITIALIZER;
@@ -39,8 +40,6 @@ int total_pages = 0;
 
 int q_head = 0, q_tail = 0;
 
-// 0 - not full
-// 1 - full
 int isQueueFull() {
     if ((q_head + 1) % Q_SIZE == q_tail) {
         return 1;
@@ -48,33 +47,21 @@ int isQueueFull() {
     return 0;
 }
 
-// 0 - not empty
-// 1 - empty
 int isQueueEmpty() {
     if (q_head == q_tail) {
         return 1;
     }
     return 0;
 }
-
-int enqueue(input_chunk_t chunk) {
-    // if (isQueueFull()) return -1;
-
+void enqueue(input_chunk_t chunk) {
     input_chunks[q_head] = chunk;
     q_head = (q_head + 1) % Q_SIZE;
-
-    // printf("enqueue [file:%d] [page:%d]\n", chunk.file_id, chunk.page_id);
-
-    return 1;
 }
 
 input_chunk_t dequeue() {
-    // if (isQueueEmpty()) return NULL;
-
     input_chunk_t chunk = input_chunks[q_tail];
     q_tail = (q_tail + 1)%Q_SIZE;
 
-    // printf("dequeue [file:%d] [page:%d]\n", chunk.file_id, chunk.page_id);
     return chunk;
 }
 
@@ -123,6 +110,7 @@ void computeRLE(input_chunk_t input) {
         chars[idx] = c;
         runs[idx] = run;
         idx++;
+        // printf("[run:%d]\n", run);
     }   
 
     // collect info and re-align
@@ -169,13 +157,16 @@ void* RLE_processor() {
 
 void* RLE_reader(void *input) {
     char **filenames = (char **)input;
-    int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
     
-    for(int fid = 0; fid < total_files;) {
-        char *filename = filenames[fid];
+    int fid = 0;
+    int n = total_files;
+
+    for(int i = 0; i < n; i++) {
+        char *filename = filenames[i];
         int fildes = open(filename, O_RDONLY);
 
         if (fildes == -1) {
+            // printf("INVALID file:%s\n", filename);
             total_files--;
             close(fildes);
             continue;
