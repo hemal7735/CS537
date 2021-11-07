@@ -10,6 +10,9 @@
 
 #define Q_SIZE 1000
 
+// switch between printf and fwrite
+int useFwrite = 1;
+
 int total_files;
 
 typedef struct _input_chunk {
@@ -70,38 +73,37 @@ input_chunk_t dequeue() {
     return chunk;
 }
 
+void print_chunk(output_chunk_t curr_chunk) {
+    for(int k = 0; k < curr_chunk.size; k++) {
+        int run = curr_chunk.runs[k];
+        char c = curr_chunk.chars[k];
+
+        if (useFwrite) {
+            fwrite(&run, sizeof(run), 1, stdout);
+            fwrite(&c, sizeof(c), 1, stdout);
+        } else {
+            printf("%d%c\n", run, c);
+        }
+    }
+}
+
 void computeRLE(input_chunk_t input) {
     output_chunk_t output;
     // 1-1 mapping between character and counts
 	char *chars = malloc(input.size * sizeof(char));
     int *runs = malloc(input.size * sizeof(int));
-    int idx = 0;
-
-    // TODO: remove this
-    // for(int l = 0; l < input.size; l++) {
-    //     if (input.buf[l] == '\n') {
-    //         printf("bingo in RLE first\n");
-    //     }
-    // }
-    int i = 0;
+    int idx = 0, i = 0;
 
     while(i < input.size) {
-        // puts("for loop");
-
-        if (input.buf[i] == '\n') {
-            // printf("bingo in RLE second\n");
-        }
-
         char c = input.buf[i];
-
         int run = 0;
+
+        // printf("%c\n", c);
 
         while(i < input.size && input.buf[i] == c) {
             i++;
             run++;
         }
-
-        // printf("[char-%c] [run-%d]\n", c, run);
 
         chars[idx] = c;
         runs[idx] = run;
@@ -110,13 +112,19 @@ void computeRLE(input_chunk_t input) {
 
     // collect info and re-align
     output.size = idx;
-    output.chars = realloc(chars, output.size);
-    output.runs = realloc(runs, output.size);
+    output.chars = chars;
+    output.runs = runs;
 
+    // printf("[file:%d] [page:%d] [chunk_size:%d]\n", input.file_id, input.page_id, output.size);
+
+    if (input.page_id <= 4000) {
+        // printf("writing for page:%d\n", input.page_id);
+        // print_chunk(output);
+    }
     output_chunks[input.file_id][input.page_id] = output;
 }
 
-void readFiles(char **filenames) {
+void read_files(char **filenames) {
 
     int PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
     
@@ -125,37 +133,35 @@ void readFiles(char **filenames) {
         int fildes = open(filename, O_RDONLY);
 
         if (fildes == -1) {
-            printf("error getting fstats\n");
             close(fildes);
-            exit(1);
+            continue;
         }
 
         struct stat sb;
 
         if (fstat(fildes, &sb) == -1) {
-            printf("error getting fstats\n");
             close(fildes);
-            exit(1);
+            continue;
         }
+
+        // printf("[file:%s] [size:%ld]\n", filename, sb.st_size);
 
         int pages = sb.st_size/PAGE_SIZE + (sb.st_size % PAGE_SIZE != 0);
         total_pages += pages;
 
         // init chunks array for output based on the number of pages
-        output_chunks[fid] = (output_chunk_t*)malloc(pages * sizeof(output_chunk_t));
+        output_chunks[fid] = (output_chunk_t*)calloc(pages,  sizeof(output_chunk_t));
         pages_count[fid] = pages;
-
-        // printf("[file:%s] [size:%ld] [total pages:%d]\n", filename, sb.st_size, total_pages);
 
         // TODO: what happens if the file cannot be fit inside the memory?
         char *ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fildes, 0);
         
-        for(int page = 0; page < pages; page++) {
+        for(int page_id = 0; page_id < pages; page_id++) {
             
             int actual_size = PAGE_SIZE;
 
             // last page might not be fully filled
-            if (page == total_pages - 1) {
+            if (page_id == pages - 1) {
                 actual_size = sb.st_size % PAGE_SIZE;
             }
 
@@ -163,49 +169,72 @@ void readFiles(char **filenames) {
 
             input_chunk.buf = ptr;
             input_chunk.file_id = fid;
-            input_chunk.page_id = page;
+            input_chunk.page_id = page_id;
             input_chunk.size = actual_size;
 
-            // for(int l = 0; l < input_chunk.size; l++) {
-            //     if (ptr[l] == '\n') {
-            //         puts("bingo");
-            //     }
-            // }
+            // printf("[filename:%s] [actual_size:%d]\n", filename, actual_size);
 
             computeRLE(input_chunk);
 
             ptr += actual_size;
         }
-    }
 
+        close(fildes);
+    }
 }
 
-void dump() {
-    int useFwrite = 1;
+void gen_out() {
     
-    // TODO: BUG - merge to previous
+    // output_chunk_t curr_chunk;
 
-    for(int fid = 0; fid < total_files; fid++) {
-        int pages = pages_count[fid];
+    // for(int i = 0; i < 1; i++) {
+    //     curr_chunk = *(output_chunks + i);
 
-        for(int page = 0; page < pages; page++) {
-            output_chunk_t output = output_chunks[fid][page];
-            
-            int i;
+    //     printf("[writing for page:%d]\n", i);
 
-            for(i = 0; i < output.size; i++) {
-                int run = output.runs[i];
-                char c = output.chars[i];
+    //     shift to the next chunk
+    //     if (i < total_pages - 1) {
+    //         output_chunk_t next_chunk = *output_chunks[i + 1];
 
-                if (useFwrite) {
-                    fwrite(&run, sizeof(run), 1, stdout);
-                    fwrite(&c, sizeof(c), 1, stdout);
+    //         int next_chunk_first_char = next_chunk.chars[0];
+    //         int curr_chunk_last_char = curr_chunk.chars[curr_chunk.size - 1];
+
+    //         if (curr_chunk_last_char == next_chunk_first_char) {
+    //             next_chunk.runs[0] += curr_chunk.runs[curr_chunk.size - 1];
+    //             curr_chunk.size--;
+    //         }
+    //     }
+
+    //     print_chunk(curr_chunk);
+    // }
+
+    int last_file_id = total_files - 1;
+
+    for(int fid = 0; fid <= last_file_id; fid++) {
+        int last_page = pages_count[fid] - 1;
+
+        for(int page = 0; page <= last_page; page++) {
+            output_chunk_t curr_chunk = output_chunks[fid][page];
+            output_chunk_t next_chunk;
+
+            // if it is last file and last page then we can't shift count to next page
+            if (!(fid == last_file_id && page == last_page)) {
+                if (page == last_page) {
+                    next_chunk = output_chunks[fid + 1][0];
                 } else {
-                    printf("%d%c", run, c);
+                    next_chunk = output_chunks[fid][page + 1];
+                }
+
+                int next_chunk_first_char = next_chunk.chars[0];
+                int curr_chunk_last_char = curr_chunk.chars[curr_chunk.size - 1];
+
+                if (curr_chunk_last_char == next_chunk_first_char) {
+                    next_chunk.runs[0] += curr_chunk.runs[curr_chunk.size - 1];
+                    curr_chunk.size--;
                 }
             }
 
-            // printf("total chars:%d\n", i);
+            print_chunk(curr_chunk);
         }
     }
 }
@@ -218,10 +247,10 @@ int main(int argc, char *argv[]) {
 
     total_files = argc - 1;
     pages_count = (int*)malloc(total_files * sizeof(int));
-    output_chunks = (output_chunk_t**)malloc(total_files * sizeof(output_chunk_t*));
+    output_chunks = (output_chunk_t**)calloc(total_files, sizeof(output_chunk_t*));
 
-    readFiles(argv + 1);
-    dump();
+    read_files(argv + 1);
+    gen_out();
     
     return 0;
 }
