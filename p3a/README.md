@@ -13,3 +13,8 @@ This is a solution to the [original problem](https://github.com/remzi-arpaciduss
 ### Misc:
 1. We have used a circular queue with size `N`, that can hold `N-1` items at a time. With this, we are trading off 1 item space with better readability, since we don't need to maintain `size` variable and boundary conditions can be checked easily.
 2. For `mmap()`, we are using the larger `length`, because this way we can achieve better concurrency, since most of the time will be spent doing RLE compression.
+
+## Exection Result:
+
+![image](https://user-images.githubusercontent.com/13718176/140824106-8c68c615-7c45-4258-ba1d-f9b163f2f920.png)
+
