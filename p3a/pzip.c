@@ -20,7 +20,7 @@
 
 #define Q_SIZE 100000
 // large value gives better performance because then you spend more time compressing
-int PAGE_SIZE = 4096 * 1000; 
+int PAGE_SIZE = 4096 * 2000; 
 
 // variables for concurrency
 pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -203,6 +203,8 @@ void* RLE_reader(void *input) {
 
             pthread_mutex_unlock(&q_lock);
 			pthread_cond_signal(&cond_q_fill);
+            // pthread_cond_broadcast(&cond_q_fill);
+
         }
 
         close(fildes);
@@ -279,6 +281,60 @@ void RLE_writer() {
     }
 }
 
+
+void RLE_writer2() {
+
+    int last_file_id = total_files - 1;
+
+    for(int fid = 0; fid <= last_file_id; fid++) {
+        char* output = malloc(pages_count[fid] * PAGE_SIZE * (sizeof(int)+sizeof(char)));
+        char* ptr = output;
+
+        int last_page = pages_count[fid] - 1;
+
+        for(int page = 0; page <= last_page; page++) {
+            output_chunk_t curr_chunk = output_chunks[fid][page];
+            output_chunk_t next_chunk;
+
+            // if it is last file and last page then we can't shift count to next page
+            if (!(fid == last_file_id && page == last_page)) {
+                if (page == last_page) {
+                    next_chunk = output_chunks[fid + 1][0];
+                } else {
+                    next_chunk = output_chunks[fid][page + 1];
+                }
+
+                int next_chunk_first_char = next_chunk.chars[0];
+                int curr_chunk_last_char = curr_chunk.chars[curr_chunk.size - 1];
+
+                if (curr_chunk_last_char == next_chunk_first_char) {
+                    next_chunk.runs[0] += curr_chunk.runs[curr_chunk.size - 1];
+                    curr_chunk.size--;
+                }
+            }
+
+            for(int k = 0; k < curr_chunk.size; k++) {
+                int run = curr_chunk.runs[k];
+                char c = curr_chunk.chars[k];
+
+                *((int*)ptr) = run;
+                ptr += sizeof(run);
+                *((char*)ptr) = c;
+                ptr += sizeof(c);
+            }
+        }
+
+        if (useFwrite) {
+            fwrite(output, ptr - output, 1,stdout);
+        } else {
+            printf("%s", output);
+        }
+
+        free(output);
+    }
+}
+
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("pzip: file1 [file2 ...]\n");
@@ -303,7 +359,7 @@ int main(int argc, char *argv[]) {
         pthread_join(processors[i], NULL);
     }
 
-    RLE_writer();
+    RLE_writer2();
     
     return 0;
 }
