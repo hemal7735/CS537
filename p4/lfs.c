@@ -141,8 +141,16 @@ int Lookup(int pinum, char *name) {
     return -1;
 }
 
-int Stat(int inum, MFS_Stat_t *m) {
-    return 0;
+int Stat(int inum, MFS_Stat_t *stat) {
+    Inode inode;
+
+	if(inode_lookup(inum, &inode) == -1)
+		return -1;
+
+	stat->type = inode.type;
+	stat->size = inode.size;
+
+	return 0;
 }
 
 int Write(int inum, char *buffer, int block) {
