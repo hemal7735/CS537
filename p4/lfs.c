@@ -5,14 +5,14 @@
 #include <string.h>
 
 int fd;
-int inode_map[INODES_LIMIT];
+int inode_map[NUM_INODES];
 int next_block;
 char INVALID_ENTRY[] = "INVALID_ENTRY";
 char DOT[] = ".";
 char DOT_DOT[] = "..";
 
 void sync_CR(int inum) {
-    lseek(fd, INODES_LIMIT*sizeof(int), SEEK_SET);
+    lseek(fd, NUM_INODES * sizeof(int), SEEK_SET);
 	write(fd, &next_block, sizeof(int));
 
     if(inum != -1) {
@@ -23,7 +23,7 @@ void sync_CR(int inum) {
 }
 
 int inode_lookup(int inum, Inode* node) {
-    if (inum < 0 || inum >= INODES_LIMIT) {
+    if (inum < 0 || inum >= NUM_INODES) {
         return -1;
     }
 
@@ -41,7 +41,7 @@ int Startup(char *filePath) {
         }
 
         // -1 means that it is not occupied
-        for(int i = 0; i < INODES_LIMIT; i++) {
+        for(int i = 0; i < NUM_INODES; i++) {
             inode_map[i] = -1;
         }
 
@@ -49,7 +49,7 @@ int Startup(char *filePath) {
 
         // CR region contains the inodes and last block written size
         lseek(fd, 0, SEEK_SET);
-		write(fd, inode_map, sizeof(int)*INODES_LIMIT);
+		write(fd, inode_map, NUM_INODES * sizeof(int));
 		write(fd, &next_block, sizeof(int));
 
 
@@ -60,7 +60,7 @@ int Startup(char *filePath) {
 		strcpy(dirBlock.names[0], DOT);
 		strcpy(dirBlock.names[1], DOT_DOT);
 
-		for(int i = 2; i < NENTRIES; i++) {
+		for(int i = 2; i < NUM_ENTRIES; i++) {
 			strcpy(dirBlock.names[i], INVALID_ENTRY);
             dirBlock.inums[i] = -1;
 		}
@@ -80,7 +80,7 @@ int Startup(char *filePath) {
         root_inode.used[0] = 1;
         root_inode.blocks[0] = next_block;
 
-        for(int i = 1; i < BLOCKS_LIMIT; i++) {
+        for(int i = 1; i < NUM_BLOCKS; i++) {
             root_inode.used[i] = -1;
             root_inode.blocks[i] = -1;
         }
@@ -98,7 +98,7 @@ int Startup(char *filePath) {
 
     } else {
         lseek(fd, 0, SEEK_SET);
-        read(fd, inode_map, sizeof(int)*INODES_LIMIT);
+        read(fd, inode_map, NUM_INODES * sizeof(int));
         read(fd, &next_block, sizeof(int));
 
         printf("printig indoe \n");
@@ -115,7 +115,30 @@ int Startup(char *filePath) {
 }
 
 int Lookup(int pinum, char *name) {
-    return 0;
+    Inode inode;
+
+    // parent does not exist
+    if (inode_lookup(pinum, &inode) == -1) {
+        return -1;
+    }
+
+    for(int block = 0; block < NUM_BLOCKS; block++) {
+        if (inode.used[block]) {
+            DirBlock dirblock;
+
+            lseek(fd, inode.blocks[block] * BLOCK_SIZE, SEEK_SET);
+			read(fd, &dirblock, BLOCK_SIZE);
+
+            for(int entry = 0; entry < NUM_ENTRIES; entry++) {
+				if(dirblock.inums[entry] != -1 
+                    && strcmp(name, dirblock.names[entry]) == 0) {
+					return dirblock.inums[entry];
+				}
+			}
+        }
+    }
+
+    return -1;
 }
 
 int Stat(int inum, MFS_Stat_t *m) {

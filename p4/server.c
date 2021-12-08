@@ -9,7 +9,8 @@
 int main(int argc, char *argv[])
 {
     Startup("abc.img");
-    
+    int rc = Lookup(0, "..");
+    printf("rc:%d\n", rc);
     // server_listen(10000);
     Shutdown();
 
