@@ -1,0 +1,5 @@
+gcc -fPIC -g -c -Wall libmfs.c
+gcc -shared -Wl,-soname,libmfs.so -o libmfs.so libmfs.o -lc
+ls -al libmfs.so
+gcc -o main main.c -L. -lmfs -Wall
+export LD_LIBRARY_PATH=.
