@@ -154,10 +154,102 @@ int Stat(int inum, MFS_Stat_t *stat) {
 }
 
 int Write(int inum, char *buffer, int block) {
+    Inode inode;
+
+    // invalid inode
+    if (inode_lookup(inum, &inode) == -1) {
+        return -1;
+    }
+
+    // we can only write to the file
+    if (inode.type != MFS_REGULAR_FILE) {
+        return -1;
+    }
+
+    // invalid block check
+    if(block < 0 || block >= NUM_BLOCKS)
+		return -1;
+    
+
+    int newSize = (block + 1) * BLOCK_SIZE;
+    // if new size is greater than the existing size, extend the current size
+    if (newSize > inode.size) {
+        inode.size = newSize;
+    }
+
+    inode.used[block] = 1;
+
+    // 1. write buffer
+	lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
+	write(fd, buffer, BLOCK_SIZE);
+
+    inode.blocks[block] = next_block;
+
+    // next block is inode, write inode chunk
+    next_block++;
+    
+	lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
+	write(fd, &inode, BLOCK_SIZE);
+	inode_map[inum] = next_block;
+
+    // advance next_block pointer
+	next_block++;
+
+	// write checkpoint region
+	sync_CR(inum);
+
     return 0;
 }
 
 int Read(int inum, char *buffer, int block) {
+    Inode inode;
+
+    // invalid inode
+    if (inode_lookup(inum, &inode) == -1) {
+        return -1;
+    }
+
+    // we can only write to the file
+    if (inode.type != MFS_REGULAR_FILE) {
+        return -1;
+    }
+
+    // invalid block check
+    if(block < 0 || block >= NUM_BLOCKS)
+		return -1;
+
+    // different handling for different types
+    if(inode.type == MFS_DIRECTORY){
+		DirBlock dirBlock;																				// read dirBlock
+		lseek(fd, inode.blocks[block], SEEK_SET);
+		read(fd, &dirBlock, BLOCK_SIZE);
+
+        // convert DirBlock to MRS_DirEnt_t
+		MFS_DirEnt_t dir_entries[NUM_ENTRIES];
+
+		for(int i = 0; i < NUM_ENTRIES; i++) {
+			MFS_DirEnt_t dir_entry;
+			strcpy(dir_entry.name, dirBlock.names[i]);
+			dir_entry.inum = dirBlock.inums[i];
+
+			dir_entries[i] = dir_entry;
+		}
+
+		memcpy(buffer, dir_entries, NUM_ENTRIES * sizeof(MFS_DirEnt_t));
+	} else {
+		if(lseek(fd, inode.blocks[block] * BLOCK_SIZE, SEEK_SET) == -1) {
+			perror("Server_Read: lseek:");
+			printf("Server_Read: lseek failed\n");
+            return -1;
+		}
+		
+		if(read(fd, buffer, BLOCK_SIZE) == -1) {
+			perror("Server_Read: read:");
+			printf("Server_Read: read failed\n");
+            return -1;
+		}
+    }
+
     return 0;
 }
 
