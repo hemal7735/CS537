@@ -1,5 +1,5 @@
-#ifndef __PACKETS_H__
-#define __PACKETS_H__
+#ifndef __MESSAGE_H__
+#define __MESSAGE_H__
 #define BUFFER_SIZE (4096)
 #define MAX_NAME_SIZE (28)
 #ifndef __MFS_h__

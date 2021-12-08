@@ -1,2 +1,2 @@
-gcc server.c udp.c -o server
+gcc server.c udp.c lfs.c -o server
 ./server
