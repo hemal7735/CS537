@@ -9,7 +9,9 @@
 int main(int argc, char *argv[])
 {
     Startup("abc.img");
+    
     // server_listen(10000);
+    Shutdown();
 
     return 0;
 }

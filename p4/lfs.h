@@ -8,13 +8,13 @@
 #define NENTRIES	(BLOCK_SIZE/DIRENTRY_SIZE)	// number of entries per block in a directory
 #define NAME_LENGTH	28			// length (in bytes) of a directory entry name
 
-typedef struct _inode {
+typedef struct _Inode {
 	int inum;
 	int size; // number of bytes in the file. a multiple of BLOCKSIZE
 	int type;
 	int used[BLOCKS_LIMIT]; // used[i] is true if blocks[i] is used
 	int blocks[BLOCKS_LIMIT]; // address in memory of each block
-} inode;
+} Inode;
 
 typedef struct _DirBlock {
 	char names[NENTRIES][NAME_LENGTH];
@@ -48,7 +48,7 @@ int Creat(int pinum, int type, char *name);
 int Unlink(int pinum, char *name);
 int Shutdown();
 
-int get_inode(int inum, inode* n);
+int inode_lookup(int inum, Inode* n);
 int build_dir_block(int firstBlock, int inum, int pinum);
 void sync_CR(int inum);
 

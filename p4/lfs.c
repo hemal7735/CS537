@@ -22,6 +22,17 @@ void sync_CR(int inum) {
 	}
 }
 
+int inode_lookup(int inum, Inode* node) {
+    if (inum < 0 || inum >= INODES_LIMIT) {
+        return -1;
+    }
+
+    lseek(fd, inode_map[inum] * BLOCK_SIZE, SEEK_SET);
+    read(fd, node, sizeof(Inode));
+
+    return 0;
+}
+
 int Startup(char *filePath) {
     if((fd = open(filePath, O_RDWR)) == -1) {
 
@@ -60,7 +71,7 @@ int Startup(char *filePath) {
 
 
         // 3. prepare inode for root
-        inode root_inode;
+        Inode root_inode;
 
         root_inode.inum = 0;
         root_inode.type = MFS_DIRECTORY;
@@ -79,7 +90,7 @@ int Startup(char *filePath) {
         inode_map[root_inode.inum] = next_block;
 
 		lseek(fd, next_block*BLOCK_SIZE, SEEK_SET);
-		write(fd, &root_inode, sizeof(inode));
+		write(fd, &root_inode, sizeof(Inode));
 		next_block++;
 
 		// 5. update checkpoint region
@@ -99,8 +110,6 @@ int Startup(char *filePath) {
 
         printf("next block : %d\n", next_block);
     }
-
-    close(fd);
 
     return 0;
 }
@@ -130,5 +139,6 @@ int Unlink(int pinum, char *name) {
 }
 
 int Shutdown() {
+    close(fd);
     return 0;
 }
