@@ -82,34 +82,53 @@ void Server_listen(int port) {
     while (1)
     {
         struct sockaddr_in addr;
-        Message request;
+        Message req, res;
         
+        res.m_type = REPLY;
+
         printf("server:: waiting...\n");
-        int rc = UDP_Read(sd, &addr, (char *)&request, sizeof (request));
-        printf("server:: read message [m_type:(%u)]\n", request.m_type);
+        int rc = UDP_Read(sd, &addr, (char *)&req, sizeof (req));
+        printf("server:: read message [m_type:(%u)]\n", req.m_type);
         
         if (rc > 0)
         {
             int inum;
 
-            switch (request.m_type) {
+            switch (req.m_type) {
                 case LOOKUP:
-                    rc = Lookup(request.inum, request.name);
+                    rc = Lookup(req.inum, req.name);
+                    res.rc = rc;
+
+                    if (rc < 0) {
+                        res.inum = rc;
+                    }
+
                     break;
                 case STAT:
-                    rc = Stat(request.inum, &(request.stat));
+                    rc = Stat(req.inum, &(req.stat));
+                    res.rc = rc;
+                    res.stat = req.stat;
+
                     break;
                 case WRITE:
-                    rc = Write(request.inum, request.buffer, request.block);
+                    rc = Write(req.inum, req.buffer, req.block);
+                    res.rc = rc;
                     break;
                 case READ:
-                    rc = Read(request.inum, request.buffer, request.block);
+                    rc = Read(req.inum, req.buffer, req.block);
+                    res.rc = rc;
+                    strcpy(res.buffer, req.buffer);
+
                     break;
                 case CREAT:
-                    rc = Creat(request.inum, request.type, request.name);
+                    rc = Creat(req.inum, req.type, req.name);
+                    res.rc = rc;
+
                     break;
                 case UNLINK:
-                    rc = Unlink(request.inum, request.name);
+                    rc = Unlink(req.inum, req.name);
+                    res.rc = rc;
+
                     break;
                 case SHUTDOWN:
                     Shutdown();
@@ -119,9 +138,7 @@ void Server_listen(int port) {
                     break;
             }
 
-            Message response;
-            response.m_type = REPLY;
-            rc = UDP_Write(sd, &addr, (char *)&response, sizeof(response));
+            rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
             printf("server:: replied\n");
         }
     }

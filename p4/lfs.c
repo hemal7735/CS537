@@ -509,5 +509,6 @@ int Unlink(int pinum, char *name) {
 int Shutdown() {
     fsync(fd);
     close(fd);
+    exit(0);
     return 0;
 }
