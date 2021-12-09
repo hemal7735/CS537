@@ -27,10 +27,7 @@ void test() {
     int bar_inode = Lookup(foo_inode, bar);
     printf("/bar inum is:%d\n", bar_inode);
 
-    bar_inode = Lookup(0, bar);
-    printf("/bar inum is:%d\n", bar_inode);
-
-    char buffer[10000];
+    // char buffer[10000];
 
     // rc = Read(0, buffer, 0);
     // if (rc < 0) {
@@ -39,7 +36,28 @@ void test() {
     //     printf("Read: %s\n", buffer);
     // }
 
-    rc = Read(foo_inode, buffer, 0);
+    // rc = Read(foo_inode, buffer, 0);
+
+    rc = Unlink(0, foo);
+
+    if (rc < 0) {
+        printf("deletion of foo failed\n");
+    }
+
+    rc = Unlink(foo_inode, bar);
+    if (rc < 0) {
+        printf("deletion of bar failed\n");
+    } else {
+        printf("bar deleted \n");
+    }
+
+    rc = Unlink(0, foo);
+
+    if (rc < 0) {
+        printf("deletion of foo failed\n");
+    } else {
+        printf("foo deleted \n");
+    }
 
     Shutdown();
 }

@@ -138,6 +138,7 @@ int Startup(char *filePath) {
         printf("next block : %d\n", next_block);
     }
 
+    fsync(fd);
     return 0;
 }
 
@@ -224,7 +225,7 @@ int Write(int inum, char *buffer, int block) {
 
 	// write checkpoint region
 	sync_CR(inum);
-
+    fsync(fd);
     return 0;
 }
 
@@ -400,10 +401,108 @@ int Creat(int pinum, int type, char *name) {
 
     sync_CR(free_inum);
 
+    fsync(fd);
+
     return 0;
 }
 
 int Unlink(int pinum, char *name) {
+    if (strlen(name) > NAME_LENGTH) {
+        return -1;
+    }
+    
+    Inode parent_inode;
+
+    if (inode_lookup(pinum, &parent_inode) == -1) {
+        return -1;
+    }
+
+    int cinum = Lookup(pinum, name);
+    
+    Inode child_inode;
+    // it is fine if it does not exist
+    if (inode_lookup(cinum, &child_inode) == -1) {
+        return 0;
+    }
+
+    // we have some common operation for directory and file
+    // but for directory, we need to make sure that it is empty
+
+    if (child_inode.type == MFS_DIRECTORY) {
+        for(int block = 0; block < NUM_BLOCKS; block++) {
+
+            if (child_inode.used[block]) {
+                DirBlock dirBlock;
+                lseek(fd, child_inode.blocks[block] * BLOCK_SIZE , SEEK_SET);
+                read(fd, &dirBlock, BLOCK_SIZE);
+
+                for(int entry = 0; entry < NUM_ENTRIES; entry++) {
+                    if (dirBlock.inums[entry] != -1
+                        && strcmp(dirBlock.names[entry], DOT) != 0
+                        && strcmp(dirBlock.names[entry], DOT_DOT) != 0) {
+                        return -1;
+                    }
+                }
+            }
+            
+        }
+    }
+
+    // 1. remove entry from the parent
+    // 2. update parent and write the new block, update block map
+
+    int block = 0, entry = 0;
+
+    for(block = 0; block < NUM_BLOCKS; block++) {
+        if (parent_inode.used[block]) {
+            DirBlock dirBlock;
+
+            lseek(fd, parent_inode.blocks[block] * BLOCK_SIZE, SEEK_SET);
+            read(fd, &dirBlock, BLOCK_SIZE);
+ 
+            for(entry = 0; entry < NUM_ENTRIES; entry++) {
+                if (dirBlock.inums[entry] != -1
+                    && strcmp(name, dirBlock.names[entry]) == 0) {
+                        // clean up entry
+                        dirBlock.inums[entry] = -1;
+						strcpy(dirBlock.names[entry], INVALID_ENTRY);
+
+                        // write this block
+                        lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
+                        write(fd, &block, BLOCK_SIZE);
+                        
+
+                        // update parent with new block
+                        parent_inode.blocks[block] = next_block;
+
+                        next_block++;
+
+                        // write new parent inode and update that in inode_map
+                        lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
+                        write(fd, &parent_inode, BLOCK_SIZE);
+                        inode_map[pinum] = next_block;
+
+                        next_block++;
+
+                        sync_CR(pinum);
+
+                        goto parent_update_done;
+                }
+            }
+        }
+    }
+
+
+    parent_update_done:
+
+    // 3. set -1 in inode map for inode
+    inode_map[cinum] = -1;
+
+    // 4. sync CR
+    sync_CR(cinum);
+
+    fsync(fd);
+
     return 0;
 }
 
