@@ -49,7 +49,7 @@ int Unlink(int pinum, char *name);
 int Shutdown();
 
 int inode_lookup(int inum, Inode* n);
-int build_dir_block(int firstBlock, int inum, int pinum);
+int build_dirBlock(int firstBlock, int inum, int pinum);
 void sync_CR(int inum);
 
 #endif

@@ -5,14 +5,54 @@
 
 #define _BUFFER_SIZE (1000)
 
+void test() {
+    // create /foo
+    char foo[] = "foo";
+    char bar[] = "bar";
+
+    int rc = Creat(0, 0, foo);
+    if (rc < 0) {
+        printf("/foo failed\n");
+    }
+
+    int foo_inode = Lookup(0, foo);
+    printf("/foo inum is:%d\n", foo_inode);
+
+    // create "/foo/bar"
+    rc = Creat(foo_inode, 1, bar);
+    if (rc < 0) {
+        printf("/bar failed\n");
+    }
+
+    int bar_inode = Lookup(foo_inode, bar);
+    printf("/bar inum is:%d\n", bar_inode);
+
+    bar_inode = Lookup(0, bar);
+    printf("/bar inum is:%d\n", bar_inode);
+
+    char buffer[10000];
+
+    // rc = Read(0, buffer, 0);
+    // if (rc < 0) {
+    //     printf("Read failed\n");
+    // } else {
+    //     printf("Read: %s\n", buffer);
+    // }
+
+    rc = Read(foo_inode, buffer, 0);
+
+    Shutdown();
+}
+
 // server code
 int main(int argc, char *argv[])
 {
-    Startup("abc.img");
-    int rc = Lookup(0, "..");
-    printf("rc:%d\n", rc);
+    char file[] = "abc.dmg";
+    Startup(file);
+    test();
     // server_listen(10000);
-    Shutdown();
+
+    
 
     return 0;
 }
