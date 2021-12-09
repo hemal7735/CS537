@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include "udp.h"
-#include "message.h"
 #include "lfs.h"
+#include "message.h"
 
 #define _BUFFER_SIZE (1000)
+
+void Server_listen(int port);
 
 void test() {
     // create /foo
@@ -67,11 +69,9 @@ int main(int argc, char *argv[])
 {
     char file[] = "abc.dmg";
     Startup(file);
-    test();
-    // server_listen(10000);
-
+    // test();
+    Server_listen(10000);
     
-
     return 0;
 }
 
@@ -99,7 +99,7 @@ void Server_listen(int port) {
                     rc = Lookup(req.inum, req.name);
                     res.rc = rc;
 
-                    if (rc < 0) {
+                    if (rc != -1) {
                         res.inum = rc;
                     }
 

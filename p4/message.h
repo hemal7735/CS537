@@ -1,9 +1,10 @@
 #ifndef __MESSAGE_H__
-#define __MESSAGE_H__
+#define __PACKETS_H__
 #define BUFFER_SIZE (4096)
 #define MAX_NAME_SIZE (28)
-#ifndef __MFS_h__
 
+#ifndef __MFS_h__
+#ifndef __LFS_H__
 typedef struct __MFS_Stat_t {
     int type;   // MFS_DIRECTORY or MFS_REGULAR
     int size;   // bytes
@@ -15,6 +16,7 @@ typedef struct __MFS_DirEnt_t {
     int  inum;      // inode number of entry (-1 means entry not used)
 } MFS_DirEnt_t;
 
+#endif
 #endif
 
 enum M_type {

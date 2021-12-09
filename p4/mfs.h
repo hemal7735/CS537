@@ -6,6 +6,7 @@
 
 #define MFS_BLOCK_SIZE   (4096)
 
+#ifndef __MESSAGE_H__
 typedef struct __MFS_Stat_t {
     int type;   // MFS_DIRECTORY or MFS_REGULAR
     int size;   // bytes
@@ -16,6 +17,7 @@ typedef struct __MFS_DirEnt_t {
     char name[28];  // up to 28 bytes of name in directory (including \0)
     int  inum;      // inode number of entry (-1 means entry not used)
 } MFS_DirEnt_t;
+#endif
 
 
 int MFS_Init(char *hostname, int port);

@@ -1,28 +1,19 @@
 #include <stdio.h>
-#include "udp.h"
-#include "message.h"
+#include "mfs.h"
 
 #define _BUFFER_SIZE (1000)
 
 // client code
 int main(int argc, char *argv[]) {
-    struct sockaddr_in addrSnd, addrRcv;
+    char localhost[] = "localhost";
+    char foo[] = "foo";
+    int port;
 
-    int sd = UDP_Open(20000);
-    int rc = UDP_FillSockAddr(&addrSnd, "localhost", 10000);
+    MFS_Init(localhost, 10000);
+    int inum = MFS_Lookup(0, foo);
 
-    Message msg;
-    msg.m_type = LOOKUP;
+    printf("[inum:%d]\n", inum);
 
-    rc = UDP_Write(sd, &addrSnd, (char *)&msg, sizeof(msg));
-    if (rc < 0) {
-        printf("client:: failed to send\n");
-        exit(1);
-    }
-
-    printf("client:: wait for reply...\n");
-    rc = UDP_Read(sd, &addrRcv, (char *)&msg, sizeof(msg));
-    printf("client:: got reply [size:%d m_type:(%u)\n", rc, msg.m_type);
     return 0;
 }
 
