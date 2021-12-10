@@ -29,37 +29,40 @@ void test() {
     int bar_inode = Lookup(foo_inode, bar);
     printf("/bar inum is:%d\n", bar_inode);
 
-    // char buffer[10000];
+    char buffer[NUM_ENTRIES * sizeof(MFS_DirEnt_t)];
 
-    // rc = Read(0, buffer, 0);
-    // if (rc < 0) {
-    //     printf("Read failed\n");
-    // } else {
-    //     printf("Read: %s\n", buffer);
-    // }
+    rc = Read(0, buffer, 0);
+    if (rc < 0) {
+        printf("Read failed\n");
+    } else {
+        printf("Read: %s\n", buffer);
+    }
+
+    MFS_DirEnt_t dir_entries[NUM_ENTRIES];
+    memcpy(dir_entries, buffer, NUM_ENTRIES * sizeof(MFS_DirEnt_t));
 
     // rc = Read(foo_inode, buffer, 0);
 
-    rc = Unlink(0, foo);
+    // rc = Unlink(0, foo);
 
-    if (rc < 0) {
-        printf("deletion of foo failed\n");
-    }
+    // if (rc < 0) {
+    //     printf("deletion of foo failed\n");
+    // }
 
-    rc = Unlink(foo_inode, bar);
-    if (rc < 0) {
-        printf("deletion of bar failed\n");
-    } else {
-        printf("bar deleted \n");
-    }
+    // rc = Unlink(foo_inode, bar);
+    // if (rc < 0) {
+    //     printf("deletion of bar failed\n");
+    // } else {
+    //     printf("bar deleted \n");
+    // }
 
-    rc = Unlink(0, foo);
+    // rc = Unlink(0, foo);
 
-    if (rc < 0) {
-        printf("deletion of foo failed\n");
-    } else {
-        printf("foo deleted \n");
-    }
+    // if (rc < 0) {
+    //     printf("deletion of foo failed\n");
+    // } else {
+    //     printf("foo deleted \n");
+    // }
 
     Shutdown();
 }
@@ -69,8 +72,8 @@ int main(int argc, char *argv[])
 {
     char file[] = "abc.dmg";
     Startup(file);
-    // test();
-    Server_listen(10000);
+    test();
+    // Server_listen(10000);
     
     return 0;
 }

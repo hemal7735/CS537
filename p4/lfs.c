@@ -266,7 +266,6 @@ int Read(int inum, char *buffer, int block) {
 			dir_entries[i] = dir_entry;
 		}
 
-        // TODO: bug how to read?
 		memcpy(buffer, dir_entries, NUM_ENTRIES * sizeof(MFS_DirEnt_t));
 	} else {
 		if(lseek(fd, inode.blocks[block] * BLOCK_SIZE, SEEK_SET) == -1) {
