@@ -70,10 +70,14 @@ void test() {
 // server code
 int main(int argc, char *argv[])
 {
-    char file[] = "abc.dmg";
-    Startup(file);
-    test();
-    // Server_listen(10000);
+    if (argc != 3) {
+        printf("Usage: server [portnum] [file-system-image]\n");
+        exit(1);
+    }
+
+    Startup(argv[2]);
+    // test();
+    Server_listen(atoi(argv[1]));
     
     return 0;
 }

@@ -129,14 +129,14 @@ int Startup(char *filePath) {
         read(fd, inode_map, NUM_INODES * sizeof(int));
         read(fd, &next_block, sizeof(int));
 
-        printf("printig indoe \n");
-        for(int i = 0; i < 5; i++) {
-            printf("%d ", inode_map[i]);
-        }
+        // printf("printig indoe \n");
+        // for(int i = 0; i < 5; i++) {
+        //     printf("%d ", inode_map[i]);
+        // }
 
-        printf("printig indoe done \n");
+        // printf("printig indoe done \n");
 
-        printf("next block : %d\n", next_block);
+        // printf("next block : %d\n", next_block);
     }
 
     fsync(fd);

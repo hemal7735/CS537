@@ -1,20 +1,13 @@
-CC     := gcc
-CFLAGS := -Wall -Werror 
+all: libmfs.so client server
 
-SRCS   := client.c \
-	server.c 
+server:
+	gcc server.c udp.c lfs.c -o server
 
-OBJS   := ${SRCS:c=o}
-PROGS  := ${SRCS:.c=}
+libmfs.so:
+	gcc -shared -fPIC -ggdb -o libmfs.so mfs.c udp.c
 
-.PHONY: all
-all: ${PROGS}
-
-${PROGS} : % : %.o Makefile
-	${CC} $< -o $@ udp.c
+client: libmfs.so
+	gcc -ggdb -L. -lmfs -o client client.c
 
 clean:
-	rm -f ${PROGS} ${OBJS}
-
-%.o: %.c Makefile
-	${CC} ${CFLAGS} -c $<
+	rm -rf libmfs.so client server
