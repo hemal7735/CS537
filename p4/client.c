@@ -7,9 +7,10 @@
 int main(int argc, char *argv[]) {
     char localhost[] = "localhost";
     char foo[] = "foo";
-    int port;
-
-    MFS_Init(localhost, 10000);
+    int port = 10000;
+    
+    printf("Init\n");
+    MFS_Init(localhost, port);
     int inum = MFS_Lookup(0, foo);
 
     printf("[inum:%d]\n", inum);

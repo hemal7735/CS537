@@ -11,3 +11,5 @@ client: libmfs.so
 
 clean:
 	rm -rf libmfs.so client server
+
+refresh: clean all

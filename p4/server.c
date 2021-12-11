@@ -146,6 +146,8 @@ void Server_listen(int port) {
                     break;
             }
 
+            sleep(5);
+            
             rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
             printf("server:: replied\n");
 
