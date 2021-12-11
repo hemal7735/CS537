@@ -8,25 +8,24 @@ char *_hostname;
 int _port;
 int initialized = 0;
 
-Message sendMessage(Message req) {
+int sendMessage(Message* req, Message *res) {
     struct sockaddr_in addrSnd, addrRcv;
 
     int sd = UDP_Open(20000);
     int rc = UDP_FillSockAddr(&addrSnd, _hostname, _port);
 
-    rc = UDP_Write(sd, &addrSnd, (char *)&req, sizeof(req));
+    rc = UDP_Write(sd, &addrSnd, (char *)req, sizeof(Message));
     if (rc < 0) {
         printf("client:: failed to send\n");
         exit(1);
     }
 
     printf("client:: wait for reply...\n");
-    Message res;
 
-    rc = UDP_Read(sd, &addrRcv, (char *)&res, sizeof(res));
-    printf("client:: got reply [size:%d m_type:(%u)\n", rc, res.m_type);
+    rc = UDP_Read(sd, &addrRcv, (char *)res, sizeof(Message));
+    printf("client:: got reply [size:%d m_type:(%u)\n", rc, res->m_type);
 
-    return res;
+    return rc;
 }
 
 // takes a host name and port number and uses those to find the server exporting the file system.
@@ -54,9 +53,9 @@ int MFS_Lookup(int pinum, char *name) {
     req.inum = pinum;
     strcpy(req.name, name);
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     } else {
         return res.inum;
@@ -77,9 +76,9 @@ int MFS_Stat(int inum, MFS_Stat_t *m) {
     req.m_type = STAT;
     req.inum = inum;
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     }
 
@@ -102,9 +101,9 @@ int MFS_Write(int inum, char *buffer, int block) {
     strcpy(req.buffer, buffer);
     req.block = block;
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     }
 
@@ -125,9 +124,9 @@ int MFS_Read(int inum, char *buffer, int block) {
     req.inum = inum;
     req.block = block;
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     }
 
@@ -151,9 +150,9 @@ int MFS_Creat(int pinum, int type, char *name) {
     req.type = type;
     strcpy(req.name, name);
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     }
 
@@ -173,9 +172,9 @@ int MFS_Unlink(int pinum, char *name) {
     req.inum = pinum;
     strcpy(req.name, name);
 
-    res = sendMessage(req);
+    int rc = sendMessage(&req, &res);
 
-    if (res.rc < 0) {
+    if (rc < 0 || res.rc < 0) {
         return -1;
     }
 
@@ -187,9 +186,10 @@ int MFS_Unlink(int pinum, char *name) {
 int MFS_Shutdown() {
     if (!initialized) return -1;
     
-    Message req;
+    Message req, res;
 
     req.m_type = SHUTDOWN;
-    sendMessage(req);
-    return 0;
+    int rc = sendMessage(&req, &res);
+
+    return rc;
 }

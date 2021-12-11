@@ -138,7 +138,8 @@ void Server_listen(int port) {
 
                     break;
                 case SHUTDOWN:
-                    Shutdown();
+                    // for shutdown there is no action
+                    res.rc = 0;
                     break;
 
                 default:
@@ -147,6 +148,10 @@ void Server_listen(int port) {
 
             rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
             printf("server:: replied\n");
+
+            if (req.m_type == SHUTDOWN) {
+                Shutdown();
+            }
         }
     }
 }

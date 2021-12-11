@@ -4,10 +4,10 @@ server:
 	gcc server.c udp.c lfs.c -o server
 
 libmfs.so:
-	gcc -shared -fPIC -ggdb -o libmfs.so mfs.c udp.c
+	gcc -shared -fPIC -o libmfs.so mfs.c udp.c
 
 client: libmfs.so
-	gcc -ggdb -L. -lmfs -o client client.c
+	gcc -L. -lmfs -o client client.c
 
 clean:
 	rm -rf libmfs.so client server
