@@ -11,7 +11,7 @@ mfs-compile:
 	gcc -fPIC -g -c -Wall mfs.c
 
 libmfs.so: udp-compile mfs-compile
-	gcc -shared -Wl,-soname,libmfs.so -o libmfs.so udp.o mfs.o -lc
+	gcc -shared -o libmfs.so udp.o mfs.o -lc
 
 client: libmfs.so
 	gcc -o client client.c -L. -lmfs
