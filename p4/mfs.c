@@ -9,11 +9,12 @@ int _port;
 int initialized = 0;
 int MAX_RETRIES = 3;
 int WAIT_TIME_IN_SEC = 5;
+int CLIENT_PORT = 20000;
 
 int sendMessage(Message* req, Message *res) {
     struct sockaddr_in addrSnd, addrRcv;
 
-    int sd = UDP_Open(20000);
+    int sd = UDP_Open(CLIENT_PORT);
     if (sd < 0) {
         perror("Error opening UDP\n");
         return -1;
@@ -29,14 +30,12 @@ int sendMessage(Message* req, Message *res) {
     struct timeval tv;
     tv.tv_sec = WAIT_TIME_IN_SEC;
     tv.tv_usec = 0;
-
-    printf("start trying\n");
     
     for(int i = 0; i < MAX_RETRIES; i++) {
         FD_ZERO(&rfds);
         FD_SET(sd, &rfds);
 
-        printf("sending message...\n");
+        // printf("sending message...\n");
         rc = UDP_Write(sd, &addrSnd, (char *)req, sizeof(Message));
         if (rc < 0) {
             perror("client:: failed to send, retrying\n");
@@ -47,8 +46,8 @@ int sendMessage(Message* req, Message *res) {
             rc = UDP_Read(sd, &addrRcv, (char *)res, sizeof(Message));
 
             if (rc > 0) {
-                printf("client:: got reply [size:%d m_type:(%u)\n", rc, res->m_type);
-                UDP_Close(0);
+                // printf("client:: got reply [size:%d m_type:(%u)\n", rc, res->m_type);
+                UDP_Close(sd);
                 return 0;
             } else {
                 perror("failed to read\n");

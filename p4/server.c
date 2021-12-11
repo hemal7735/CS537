@@ -93,9 +93,9 @@ void Server_listen(int port) {
         
         res.m_type = REPLY;
 
-        printf("server:: waiting...\n");
+        // printf("server:: waiting...\n");
         int rc = UDP_Read(sd, &addr, (char *)&req, sizeof (req));
-        printf("server:: read message [m_type:(%u)]\n", req.m_type);
+        // printf("server:: read message [m_type:(%u)]\n", req.m_type);
         
         if (rc > 0)
         {
@@ -145,11 +145,8 @@ void Server_listen(int port) {
                 default:
                     break;
             }
-
-            sleep(5);
             
             rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
-            printf("server:: replied\n");
 
             if (req.m_type == SHUTDOWN) {
                 Shutdown();
