@@ -183,6 +183,11 @@ int Stat(int inum, MFS_Stat_t *stat) {
 }
 
 int Write(int inum, char *buffer, int block) {
+    // invalid block check
+    if(block < 0 || block >= NUM_BLOCKS) {
+		return -1;
+    }
+    
     Inode inode;
 
     // invalid inode
@@ -194,10 +199,6 @@ int Write(int inum, char *buffer, int block) {
     if (inode.type != MFS_REGULAR_FILE) {
         return -1;
     }
-
-    // invalid block check
-    if(block < 0 || block >= NUM_BLOCKS)
-		return -1;
     
 
     int newSize = (block + 1) * BLOCK_SIZE;
@@ -207,16 +208,14 @@ int Write(int inum, char *buffer, int block) {
     }
 
     inode.used[block] = 1;
+    inode.blocks[block] = next_block;
 
     // 1. write buffer
 	lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
 	write(fd, buffer, BLOCK_SIZE);
 
-    inode.blocks[block] = next_block;
-
     // next block is inode, write inode chunk
-    next_block++;
-    
+    next_block++;    
 	lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
 	write(fd, &inode, BLOCK_SIZE);
 	inode_map[inum] = next_block;
@@ -327,7 +326,7 @@ int Creat(int pinum, int type, char *name) {
         return -1;
     }
 
-    int block = 0, entry, block_address;
+    int block = 0, entry, block_num;
     DirBlock dirBlock;
 
     while (block < NUM_BLOCKS) {
@@ -386,9 +385,9 @@ int Creat(int pinum, int type, char *name) {
     }
 
     if (type == MFS_DIRECTORY) {
-        block_address = build_dirBlock(1, free_inum, pinum);
+        block_num = build_dirBlock(1, free_inum, pinum);
         inode.used[0] = 1;
-        inode.blocks[0] = block_address;
+        inode.blocks[0] = block_num;
         inode.size += BLOCK_SIZE;
     }
 
