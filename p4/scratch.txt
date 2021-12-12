@@ -3,3 +3,20 @@ gcc -shared -Wl,-soname,libmfs.so -o libmfs.so libmfs.o -lc
 ls -al libmfs.so
 gcc -o main main.c -L. -lmfs -Wall
 export LD_LIBRARY_PATH=.
+
+
+test empty FAILED
+ (unlink a non-empty directory)
+ MFS_Unlink returned failure pinum=0 name='testdir'
+
+test drop FAILED
+ (drop every other packet sent by client)
+ Timelimit (90.0s) exceeded
+ file 'mfs.o' exists after make clean, removing
+ file 'client.o' exists after make clean, removing
+ file 'udp.o' exists after make clean, removing
+ file 'server.o' exists after make clean, removing
+
+test free FAILED
+ (check that inodes and direcrtory entries are freed)
+ MFS_Creat returned failure inum=0 type=1 name='28'

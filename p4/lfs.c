@@ -139,7 +139,6 @@ int Startup(char *filePath) {
         // printf("next block : %d\n", next_block);
     }
 
-    fsync(fd);
     return 0;
 }
 
@@ -225,7 +224,6 @@ int Write(int inum, char *buffer, int block) {
 
 	// write checkpoint region
 	sync_CR(inum);
-    fsync(fd);
     return 0;
 }
 
@@ -241,7 +239,7 @@ int Read(int inum, char *buffer, int block) {
     }
 
     // invalid block check
-    if(block < 0 || block >= NUM_BLOCKS) {
+    if(block < 0 || block >= NUM_BLOCKS || !inode.used[block]) {
         if (debug_on) {
             perror("Read::invalid block number\n");
         }
@@ -400,8 +398,6 @@ int Creat(int pinum, int type, char *name) {
 
     sync_CR(free_inum);
 
-    fsync(fd);
-
     return 0;
 }
 
@@ -499,9 +495,6 @@ int Unlink(int pinum, char *name) {
 
     // 4. sync CR
     sync_CR(cinum);
-
-    fsync(fd);
-
     return 0;
 }
 

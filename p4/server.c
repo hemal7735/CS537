@@ -112,9 +112,8 @@ void Server_listen(int port) {
 
                     break;
                 case STAT:
-                    rc = Stat(req.inum, &(req.stat));
+                    rc = Stat(req.inum, &(res.stat));
                     res.rc = rc;
-                    res.stat = req.stat;
 
                     break;
                 case WRITE:
@@ -122,9 +121,8 @@ void Server_listen(int port) {
                     res.rc = rc;
                     break;
                 case READ:
-                    rc = Read(req.inum, req.buffer, req.block);
+                    rc = Read(req.inum, res.buffer, req.block);
                     res.rc = rc;
-                    strcpy(res.buffer, req.buffer);
 
                     break;
                 case CREAT:

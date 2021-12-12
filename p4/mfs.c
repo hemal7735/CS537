@@ -141,7 +141,10 @@ int MFS_Write(int inum, char *buffer, int block) {
 
     req.m_type = WRITE;
     req.inum = inum;
-    strcpy(req.buffer, buffer);
+
+    // Bug: don't use strcpy
+    // strcpy stops copying once it encounters null character. Tests are failing when there is a sparse input.
+    memcpy(req.buffer, buffer, BUFFER_SIZE);
     req.block = block;
 
     int rc = sendMessage(&req, &res);
@@ -173,7 +176,9 @@ int MFS_Read(int inum, char *buffer, int block) {
         return -1;
     }
 
-    strcpy(buffer, res.buffer);
+    // Bug: don't use strcpy
+    // strcpy stops copying once it encounters null character. Tests are failing when there is a sparse input.
+    memcpy(buffer, res.buffer, BUFFER_SIZE);
 
     return 0;
 }
