@@ -464,7 +464,7 @@ int Unlink(int pinum, char *name) {
 
                         // write this block
                         lseek(fd, next_block * BLOCK_SIZE, SEEK_SET);
-                        write(fd, &block, BLOCK_SIZE);
+                        write(fd, &dirBlock, BLOCK_SIZE);
                         
 
                         // update parent with new block
