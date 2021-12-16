@@ -9,12 +9,43 @@ int _port;
 int initialized = 0;
 int MAX_RETRIES = 3;
 int WAIT_TIME_IN_SEC = 5;
-int CLIENT_PORT = 20000;
+
+// decide if static or dynamic port to use
+int useFixedPort = 0;
+
+// static client port
+int CLIENT_PORT = 20500;
+// dynamic port range
+int MIN_PORT = 20500;
+int MAX_PORT = 22000;
+
+int openConn() {
+    int sd = -1;
+
+    for(int port = MIN_PORT; port < MAX_PORT; port++) {
+        sd = UDP_Open(port);
+
+        if (sd < 0) {
+            printf("Error opening UDP\n");
+        } else {
+            break;
+        }
+    }
+
+    return sd;
+}
 
 int sendMessage(Message* req, Message *res) {
     struct sockaddr_in addrSnd, addrRcv;
 
-    int sd = UDP_Open(CLIENT_PORT);
+    // for testing purpose it is required
+    int sd = -1;
+    if (useFixedPort) {
+        sd = UDP_Open(CLIENT_PORT);
+    } else {
+        sd = openConn();
+    }
+
     if (sd < 0) {
         perror("Error opening UDP\n");
         return -1;
@@ -31,7 +62,7 @@ int sendMessage(Message* req, Message *res) {
     tv.tv_sec = WAIT_TIME_IN_SEC;
     tv.tv_usec = 0;
     
-    for(int i = 0; i < MAX_RETRIES; i++) {
+    do {
         FD_ZERO(&rfds);
         FD_SET(sd, &rfds);
 
@@ -42,33 +73,21 @@ int sendMessage(Message* req, Message *res) {
             continue;
         }
 
-        if (select(sd + 1, &rfds, NULL, NULL, &tv) >= 0) {
+        if (select(sd + 1, &rfds, NULL, NULL, &tv)) {
             rc = UDP_Read(sd, &addrRcv, (char *)res, sizeof(Message));
 
             if (rc > 0) {
-                // printf("client:: got reply [size:%d m_type:(%u)\n", rc, res->m_type);
                 UDP_Close(sd);
                 return 0;
             } else {
                 perror("failed to read\n");
             }
         } else {
-            perror("select() error\n");
+            // perror("select() error\n");
         }
-    }
+    } while(1);
 
     return -1;
-
-    // rc = UDP_Write(sd, &addrSnd, (char *)req, sizeof(Message));
-    // if (rc < 0) {
-    //     printf("client:: failed to send\n");
-    //     exit(1);
-    // }
-
-    // printf("client:: wait for reply...\n");
-
-    // rc = UDP_Read(sd, &addrRcv, (char *)res, sizeof(Message));
-    // printf("client:: got reply [size:%d m_type:(%u)\n", rc, res->m_type);
 }
 
 // takes a host name and port number and uses those to find the server exporting the file system.

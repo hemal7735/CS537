@@ -17,6 +17,6 @@ client: libmfs.so
 	gcc -o client client.c -L. -lmfs
 
 clean:
-	rm -rf libmfs.so client server
+	rm -rf libmfs.so client client.o server server.o udp udp.o mfs.o
 
 refresh: clean all
