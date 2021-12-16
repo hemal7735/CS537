@@ -147,6 +147,7 @@ void Server_listen(int port) {
             rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
 
             if (req.m_type == SHUTDOWN) {
+                UDP_Close(port);
                 Shutdown();
             }
         }
