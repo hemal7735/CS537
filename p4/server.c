@@ -97,8 +97,7 @@ void Server_listen(int port) {
         int rc = UDP_Read(sd, &addr, (char *)&req, sizeof (req));
         // printf("server:: read message [m_type:(%u)]\n", req.m_type);
         
-        if (rc > 0)
-        {
+        if (rc > 0) {
             int inum;
 
             switch (req.m_type) {
@@ -147,7 +146,7 @@ void Server_listen(int port) {
             rc = UDP_Write(sd, &addr, (char *)&res, sizeof(res));
 
             if (req.m_type == SHUTDOWN) {
-                UDP_Close(port);
+                UDP_Close(sd);
                 Shutdown();
             }
         }
