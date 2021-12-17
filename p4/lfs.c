@@ -14,6 +14,7 @@ char DOT_DOT[] = "..";
 
 int debug_on = 1;
 
+// updates checkpoint region wrt specific inum
 void sync_CR(int inum) {
     lseek(fd, NUM_INODES * sizeof(int), SEEK_SET);
 	write(fd, &next_block, sizeof(int));
@@ -25,6 +26,9 @@ void sync_CR(int inum) {
 	}
 }
 
+// returns:
+// -1 if there is failure
+// 0 if there is success
 int inode_lookup(int inum, Inode* node) {
     if (inum < 0 || inum >= NUM_INODES) {
         return -1;
@@ -36,6 +40,8 @@ int inode_lookup(int inum, Inode* node) {
     return 0;
 }
 
+// helper functino which helps initializing empty directory block
+// a lot of steps involved, so better or extract out the logic into the function
 int build_dirBlock(int needDefaults, int inum, int pinum) {
     DirBlock dirBlock;
 
@@ -56,11 +62,13 @@ int build_dirBlock(int needDefaults, int inum, int pinum) {
     write(fd, &dirBlock, BLOCK_SIZE);
     int block_address = next_block;
 
+    // bug: solved - advance to the next block
     next_block++;
 
     return block_address;
 }
 
+// initialize file-system on the specific file path
 int Startup(char *filePath) {
     if((fd = open(filePath, O_RDWR)) == -1) {
 
@@ -79,7 +87,6 @@ int Startup(char *filePath) {
         lseek(fd, 0, SEEK_SET);
 		write(fd, inode_map, NUM_INODES * sizeof(int));
 		write(fd, &next_block, sizeof(int));
-
 
         // 1. prepare the datablock for directory
         DirBlock dirBlock;
